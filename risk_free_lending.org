@@ -1,0 +1,901 @@
+# -*- mode: org; -*-
+#+TITLE: Risk Free Lending 
+#+AUTHOR: Matthew Doty
+#+DATE:
+#+STARTUP: latexpreview inlineimages
+#+LATEX_CLASS_OPTIONS: [12pt]
+#+LATEX_HEADER: \usepackage[natbib=true]{biblatex} \DeclareFieldFormat{apacase}{#1} \addbibresource{./risk-free-lending-refs.bib}
+#+LATEX_HEADER: \usepackage[toc,page]{appendix}
+#+LATEX_HEADER: \usepackage{array}
+#+LATEX_HEADER: \usepackage{kotex}
+#+LATEX_HEADER: \usepackage{multirow}
+#+LATEX_HEADER: \usepackage{parskip}
+#+LATEX_HEADER: \usepackage{svg}
+#+OPTIONS: toc:nil
+
+* Introduction
+:PROPERTIES:
+:CREATED:  [2022-06-13 Mon 11:36]
+:END:
+
+One way of financing is to lend capital to another so they can collect interest.
+An example of this is the practice of /jeonse/ (전세) in the South Korean
+housing market. In South Korea, people often do not pay rent. Instead, they lend
+a large fraction of the value of the home they are leasing to a landlord that
+owns the property. This enables financing outside of the traditional banking
+system [[cite:&shin_financing_2013]]. While they live in that home, the landlord
+invests the capital and collects dividends. When a person moves away they take
+their deposit back from the landlord.
+
+Because of counter-party risk, lending capital this way does not work for
+micropayments. Imagine that Alice buys a burger from Bob and wants to settle by
+offering Bob a 15-year loan of $35. Bob might not return the money to Alice.
+Rather than trusting Bob, Alice will find it more attractive to settle as usual
+by paying her flat out.
+
+Blockchains stop counter-party risk by enabling programmed return payments as
+well as make defaulting impossible. They can also enable automatic interest
+distribution. That way holders of capital can effectively receive dividends.
+Proof of stake blockchains naturally pay interest. Examples of proof of stake
+chains include Tendermint [[cite:&buchman_latest_2019]], Solana
+[[cite:&yakovenko_solana_2018]] and Polkadot [[cite:&wood_polkadot_2016]]. And while a
+blockchain could track counter-party obligations, this is not necessary.
+
+#+begin_src bibtex :exports none :tangle "./risk-free-lending-refs.bib"
+@techreport{buchman_latest_2019,
+	title = {The latest gossip on {BFT} consensus},
+	url = {http://arxiv.org/abs/1807.04938},
+	abstract = {The paper presents Tendermint, a new protocol for ordering events in a distributed network under adversarial conditions. More commonly known as Byzantine Fault Tolerant (BFT) consensus or atomic broadcast, the problem has attracted significant attention in recent years due to the widespread success of blockchain-based digital currencies, such as Bitcoin and Ethereum, which successfully solved the problem in a public setting without a central authority. Tendermint modernizes classic academic work on the subject and simplifies the design of the BFT algorithm by relying on a peer-to-peer gossip protocol among nodes.},
+	number = {arXiv:1807.04938},
+	urldate = {2022-06-01},
+	institution = {arXiv},
+	author = {Buchman, Ethan and Kwon, Jae and Milosevic, Zarko},
+	month = nov,
+	year = {2019},
+	doi = {10.48550/arXiv.1807.04938},
+	note = {arXiv:1807.04938 [cs]
+type: article},
+	keywords = {Computer Science - Distributed, Parallel, and Cluster Computing},
+	file = {arXiv Fulltext PDF:/Users/mpwd/Zotero/storage/R5B3KVFT/Buchman et al. - 2019 - The latest gossip on BFT consensus.pdf:application/pdf;arXiv.org Snapshot:/Users/mpwd/Zotero/storage/KM57AHND/1807.html:text/html},
+}
+
+@techreport{shin_financing_2013,
+	type = {2013 {Meeting} {Papers}},
+	title = {Financing {Growth} without {Banks}: {Korean} {Housing} {Repo} {Contract}},
+	url = {https://ideas.repec.org/p/red/sed013/328.html},
+	abstract = {Imperfect financial intermediation is a key bottleneck in economic development. Korea's unique Jeonse or housing repo contract channels funds directly from tenant/lenders to landlord/entrepreneurs, by-passing the banking system. In a housing repo, the landlord/entrepreneur puts up the house as collateral when borrowing from the tenant/lender. The lender's loan is secured by living in the collateral asset, lowering the cost of capital and increasing credit. Jeonse has been the dominant form of rental contract in Korea, and has served as a mode of direct debt financing that by-passes the banking sector.},
+	number = {328},
+	institution = {Society for Economic Dynamics},
+	author = {Shin, Hyun and Kim, Se-Jik},
+	year = {2013},
+}
+
+@unpublished{wood_polkadot_2016,
+	title = {Polkadot: {Vision} for a heterogeneous multi-chain framework},
+	url = {https://polkadot.network/PolkaDotPaper.pdf},
+	author = {Wood, Gavin},
+	year = {2016},
+}
+
+@unpublished{yakovenko_solana_2018,
+	title = {Solana: {A} new architecture for a high performance blockchain},
+	url = {https://solana.com/solana-whitepaper.pdf},
+	author = {Yakovenko, Anatoly},
+	year = {2018},
+}
+
+#+end_src
+
+* A Lending System
+
+The lending system proposed is to have a percentage of the lent money returned
+at set periods. The holder of the loan keeps whatever interest of the remaining
+capital they have upon distribution. The system could return lent money either
+annually, quarterly, or even every millisecond. Since the system returns a
+percentage, it will only return the full balance in the limit. As a practical
+measure, we have loans target 99% of the balance returned after their term. A $1
+1-year loan would reduce to $0.01 after a year, $0.0001 a year after that, etc.
+
+#+begin_src python :exports none :results none :noweb-ref format_entry
+from typing import Dict
+
+i = 1.05 ** (1.0 / 4.0) - 1
+r_15 = 1 - 0.01 ** (1.0 / (15.0 * 4.0))
+r_10 = 1 - 0.01 ** (1.0 / (10.0 * 4.0))
+r_5 = 1 - 0.01 ** (1.0 / (5.0 * 4.0))
+r_2 = 1 - 0.01 ** (1.0 / (2.0 * 4.0))
+r_1 = 1 - 0.01 ** (1.0 / (4.0))
+
+
+def update_balance(entries):
+    for (key, value) in entries.items():
+        if key.lower() is "cash":
+            entries[key] += i * sum(entries.values())
+        elif key.lower() is "15-yr":
+            entries[key] *= r_15
+        elif key.lower() is "10-yr":
+            entries[key] *= r_10
+        elif key.lower() is "5-yr":
+            entries[key] *= r_5
+        elif key.lower() is "2-yr":
+            entries[key] *= r_2
+        elif key.lower() is "1-yr":
+            entries[key] *= r_1
+        else:
+            raise Exception(f"Uknown key: {key}")
+
+
+def total_assets(balance):
+    return sum(balance.__dict__.values())
+
+
+def format_entry(value: float) -> str:
+    return f"{'-' if value < 0 else ''}${abs(round(value, 2)):,.2f}"
+
+
+def format_value(value):
+    return f"\\${abs(round(value, 2)):,.2f}"
+
+
+def format_account(account_name: str, entries: Dict[str, float]) -> str:
+    header = (
+        """
+\\multicolumn{3}{c}{%s}\\\\
+\\multicolumn{1}{c}{} & \\multicolumn{1}{c}{Debit} & \\multicolumn{1}{c}{Credit}\\\\
+\\cline{2-3}
+"""
+        % account_name
+    )
+    rows = []
+    for description, value in entries.items():
+        if description.lower() is "cash":
+            rows.append(f"Cash & {format_value(value)} & \\\\")
+        elif value == 0:
+            rows.append(" & & \\\\")
+        elif value < 0:
+            rows.append(f"{description} & & {format_value(-value)} \\\\")
+        elif value > 0:
+            rows.append(f"{description} & {format_value(value)} & \\\\")
+    output = """
+\\begin{tabular}{l c|c}
+%s
+%s
+\\end{tabular}
+""" % (
+        header,
+        "\n".join(rows),
+    )
+    return output
+
+
+def format_accounts(accounts: Dict[str, Dict[str, float]]) -> str:
+    fraction = round(0.9 / len(accounts), 1)
+    t_accounts = []
+    for (account_name, entries) in accounts.items():
+        new_minipage = """\\begin{minipage}[t]{%0.1f\\textwidth}
+  \\centering
+  %s
+\\end{minipage}""" % (
+            fraction,
+            format_account(account_name, entries),
+        )
+        t_accounts.append(new_minipage)
+    return "\n".join(t_accounts)
+#+end_src
+
+#+begin_src python :exports none :results none :noweb yes :noweb-ref balance_15_year
+from dataclasses import dataclass
+
+quarterly_interest = 1.05 ** (1.0 / 4.0) - 1
+r_15 = 1 - 0.01 ** (1.0 / (15.0 * 4.0))
+
+
+@dataclass
+class Balance:
+    cash: float
+    fifteen_year: float
+
+
+<<format_entry>>
+
+initial_balance = Balance(0, 35)
+   
+def balance_to_table(balance):
+    from tabulate import tabulate
+
+    return tabulate(
+        [
+            ["Cash", format_entry(balance.cash)],
+            ["15-Year LOC", format_entry(balance.fifteen_year)],
+        ],
+        headers
+        tablefmt="orgtbl",
+    )
+
+def update(balance, quarters=1):
+    import copy
+
+    balance = copy.deepcopy(balance)
+    for _ in range(quarters):
+        balance.cash += quarterly_interest * total_assets(balance)
+        balance.fifteen_year *= 1 - r_15
+    return balance
+#+end_src
+
+Below is a worked example. Recall the thought experiment from \S[[Introduction]] involving Alice lending money to Bob in exchange for a burger. Assume that Alice's balance starts $50 in cash and Bob's balance starts empty. Alice lends Bob $35 for 15 years to finance her meal.  There balances would be represented by the following T-accounts:
+
+#+name: accounts-1
+#+BEGIN_SRC python :exports none :results output
+import json
+
+accounts = {
+    "Alice's Account": {"Cash": 50, "15-Yr": -35},
+    "Bob's Account": {"Cash": 0, "15-Yr": 35},
+}
+
+print(json.dumps(accounts, indent=4))
+#+END_SRC
+
+#+RESULTS: accounts-1
+#+begin_example
+{
+    "Alice's Account": {
+        "Cash": 50,
+        "15-Yr": -35
+    },
+    "Bob's Account": {
+        "Cash": 0,
+        "15-Yr": 35
+    }
+}
+#+end_example
+
+#+begin_src python :exports results :results drawer replace :noweb yes :var accounts=accounts-1
+<<format_entry>>
+import json
+
+return format_accounts(json.loads(accounts))
+#+end_src
+
+#+RESULTS:
+:results:
+\begin{minipage}[t]{0.5\textwidth}
+  \centering
+  
+\begin{tabular}{l c|c}
+
+\multicolumn{3}{c}{Alice's Account}\\
+\multicolumn{1}{c}{} & \multicolumn{1}{c}{Debit} & \multicolumn{1}{c}{Credit}\\
+\cline{2-3}
+
+Cash & \$50.00 & \\
+15-Yr & & \$35.00 \\
+\end{tabular}
+
+\end{minipage}
+\begin{minipage}[t]{0.5\textwidth}
+  \centering
+  
+\begin{tabular}{l c|c}
+
+\multicolumn{3}{c}{Bob's Account}\\
+\multicolumn{1}{c}{} & \multicolumn{1}{c}{Debit} & \multicolumn{1}{c}{Credit}\\
+\cline{2-3}
+
+ & & \\
+15-Yr & \$35.00 & \\
+\end{tabular}
+
+\end{minipage}
+:end:
+
+A software representation of their balances would be equivalent to listing [[accounts-1-listing]].
+
+#+begin_src python :exports results :results drawer replace :noweb yes :var accounts=accounts-1
+return accounts
+#+end_src
+
+#+CAPTION: Alice and Bob's accounts represented as a JSON or Python Dictionary 
+#+NAME: accounts-1-listing
+#+ATTR_LATEX: :environment 
+#+RESULTS:
+:results:
+{
+    "Alice's Account": {
+        "Cash": 50,
+        "15-Yr": -35
+    },
+    "Bob's Account": {
+        "Cash": 0,
+        "15-Yr": 35
+    }
+}
+:end:
+
+In 15 years she will only have $0.35 left. This means every quarter she loses
+approximately \(7.39\%\) of her /remaining/ credit. Before deducting credit from her
+balance she receives a distribution of interest. At a \(5\%\) APY she earns
+roughly \(1.23\%\) interest every quarter. After a quarter her balance would be:
+
+#+begin_src python :exports none :results raw :noweb yes
+<<balance_15_year>>
+return balance_to_table(update(initial_balance))
+#+end_src
+
+#+RESULTS:
+| Cash        | $0.43  |
+| 15-Year LOC | $32.41 |
+
+| Cash        | \(0.0123 \times \$35 + \$0 \approx \$0.43\)  |
+| 15-Year LOC | \((1 - 0.0739) \times \$35 \approx \$32.41\) |
+
+After a year her balance would be:
+
+#+begin_src python :exports results :results raw :noweb yes
+<<balance_15_year>>
+return balance_to_table(update(initial_balance, 4))
+#+end_src
+
+#+RESULTS:
+| Cash        | $1.57  |
+| 15-Year LOC | $25.75 |
+
+After 5 years:
+
+#+begin_src python :exports results :results raw :noweb yes
+<<balance_15_year>>
+return balance_to_table(update(initial_balance, 4 * 5))
+#+end_src
+
+#+RESULTS:
+| Cash        | $5.29 |
+| 15-Year LOC | $7.54 |
+
+After 10 years:
+
+#+begin_src python :exports results :results raw :noweb yes
+<<balance_15_year>>
+return balance_to_table(update(initial_balance, 4 * 10))
+#+end_src
+
+#+RESULTS:
+| Cash        | $7.89 |
+| 15-Year LOC | $1.62 |
+
+And finally 15 years:
+
+#+begin_src python :exports results :results raw :noweb yes
+<<balance_15_year>>
+return balance_to_table(update(initial_balance, 4 * 15))
+#+end_src
+
+#+RESULTS:
+| Cash        | $10.31 |
+| 15-Year LOC | $0.35  |
+
+Holders of 15-year credit can either spend that credit or issue loans for faster
+rates. For instance, shortly after receiving the $35 fifteen-year credit, Alice
+could purchase a donut by lending out $15 for 5 years. After that her balance
+would be:
+
+#+begin_src python :exports none :results none :noweb yes :noweb-ref balance_15_5_year
+from dataclasses import dataclass
+
+quarterly_interest = 1.05 ** (1.0 / 4.0) - 1
+r_15 = 1 - 0.01 ** (1.0 / (15.0 * 4.0))
+r_5 = 1 - 0.01 ** (1.0 / (5.0 * 4.0))
+
+
+@dataclass
+class Balance:
+    cash: float
+    fifteen_year: float
+    five_year: float
+
+initial_balance_2 = Balance(0, 35, -15)
+
+<<format_entry>>
+
+
+def balance_to_table(balance):
+    from tabulate import tabulate
+
+    return tabulate(
+        [
+            ["Cash", format_entry(balance.cash)],
+            ["15-Year LOC", format_entry(balance.fifteen_year)],
+            ["5-Year LOC", format_entry(balance.five_year)],
+        ],
+        tablefmt="orgtbl",
+    )
+
+def update(balance, quarters=1):
+    import copy
+
+    balance = copy.deepcopy(balance)
+    for _ in range(quarters):
+        balance.cash += quarterly_interest * total_assets(balance)
+        balance.fifteen_year *= 1 - r_15
+        balance.five_year *= 1 - r_5
+    return balance
+#+end_src
+
+#+begin_src python :exports results :results raw :noweb yes
+<<balance_15_5_year>>
+return balance_to_table(initial_balance_2)
+#+end_src
+
+#+RESULTS:
+| Cash           | $0.00   |
+| 15-Year LOC | $35.00  |
+| 5-Year LOC  | -$15.00 |
+
+After a year her balance would be:
+
+#+begin_src python :exports results :results raw :noweb yes
+<<balance_15_5_year>>
+return balance_to_table(update(initial_balance_2, 4))
+#+end_src
+
+#+RESULTS:
+| Cash        | $1.02  |
+| 15-Year LOC | $25.75 |
+| 5-Year LOC  | -$5.97 |
+
+After 2.5 years:
+
+#+begin_src python :exports results :results raw :noweb yes
+<<balance_15_5_year>>
+return balance_to_table(update(initial_balance_2, 10))
+#+end_src
+
+#+RESULTS:
+| Cash        | $2.45  |
+| 15-Year LOC | $16.25 |
+| 5-Year LOC  | -$1.50 |
+
+And after 5 years:
+
+#+begin_src python :exports results :results raw :noweb yes
+<<balance_15_5_year>>
+return balance_to_table(update(initial_balance_2, 20))
+#+end_src
+
+#+RESULTS:
+| Cash           | $4.22  |
+| 15-Year LOC | $7.54  |
+| 5-Year LOC  | -$0.15 |
+
+* Balances Must Always Be Solvent
+
+To prevent counter-party risk, all balances must be /solvent/ at all times. A
+balance is solvent when the sum of all the credit and debt is positive. For
+example, each balance in \S[[A Lending System]] is solvent. In fact,
+those balances will remain solvent for every quarter indefinitely. The interest
+rate could even be zero.
+
+Balances that are only temporarily solvent are not allowed. The following is an
+example of a solvent balance that is not allowed:
+
+#+begin_src python :exports results :results raw :noweb yes
+<<balance_15_5_year>>
+return balance_to_table(update(Balance(0, -35, 35), 0))
+#+end_src
+
+#+RESULTS:
+| Cash           | $0.00   |
+| 15-Year LOC | -$35.00 |
+| 5-Year LOC  | $35.00  |
+
+The reason this balance is not allowed is because after a quarter it will be insolvent:
+
+#+begin_src python :exports results :results raw :noweb yes
+<<balance_15_5_year>>
+return balance_to_table(update(Balance(0, -35, 35), 1))
+#+end_src
+
+#+RESULTS:
+| Cash           | $0.00   |
+| 15-Year LOC | -$32.41 |
+| 5-Year LOC  | $27.80  |
+
+The system must enforce can be or ever will be in an insolvent state.
+* Strictly Solvent Balances Will Always Be Solvent
+
+A balance is /strictly solvent/ when for all rates \(R\) the sum of the credit
+with rates slower than or equal to \(R\) is positive. For example, the following
+balance is strictly solvent:
+
+#+begin_src python :exports none :results none :noweb yes :noweb-ref balance_full
+from dataclasses import dataclass
+
+
+@dataclass
+class Balance:
+    cash: float
+    fifteen_year: float
+    ten_year: float
+    five_year: float
+    one_year: float
+
+
+<<format_entry>>
+
+
+def balance_to_table(balance):
+    from tabulate import tabulate
+
+    return tabulate(
+        [
+            ["Cash", format_entry(balance.cash)],
+            ["15-Year", format_entry(balance.fifteen_year)],
+            ["10-Year", format_entry(balance.ten_year)],
+            ["5-Year", format_entry(balance.five_year)],
+            ["1-Year", format_entry(balance.one_year)],
+        ],
+        tablefmt="orgtbl",
+    )
+
+
+def partial_sum(balance: Balance, label: str) -> float:
+    total = 0
+    for k, v in balance.__dict__.items():
+        total += v
+        if k is label:
+            break
+    return total
+
+
+def partial_totals(balance: Balance) -> str:
+    from tabulate import tabulate
+
+    return tabulate(
+        [
+            ["15-Year+ Credit", format_entry(partial_sum(balance, "fifteen_year"))],
+            ["10-Year+ Credit", format_entry(partial_sum(balance, "ten_year"))],
+            ["5-Year+ Credit", format_entry(partial_sum(balance, "five_year"))],
+            ["Total Credit", format_entry(partial_sum(balance, "one_year"))],
+        ],
+        tablefmt="orgtbl",
+    )
+
+
+#quarterly_interest = 1.05 ** (1.0 / 4.0) - 1
+quarterly_interest = 0
+r_15 = 1 - 0.01 ** (1.0 / (15.0 * 4.0))
+r_10 = 1 - 0.01 ** (1.0 / (10.0 * 4.0))
+r_5 = 1 - 0.01 ** (1.0 / (5.0 * 4.0))
+r_1 = 1 - 0.01 ** (1.0 / (1.0 * 4.0))
+
+def update(balance, quarters=1):
+    import copy
+
+    balance = copy.deepcopy(balance)
+    for _ in range(quarters):
+        balance.cash += quarterly_interest * total_assets(balance)
+        balance.fifteen_year *= 1 - r_15
+        balance.ten_year *= 1 - r_15
+        balance.five_year *= 1 - r_5
+        balance.one_year *= 1 - r_1
+    return balance
+
+example_balance_full = Balance(10, -5, 4, -5, -3)
+#+end_src
+
+#+begin_src python :exports results :results raw :noweb yes
+<<balance_full>>
+return balance_to_table(example_balance_full)
+#+end_src
+
+#+RESULTS:
+| Cash    | $10.00 |
+| 15-Year | -$5.00 |
+| 10-Year | $4.00  |
+| 5-Year  | -$5.00 |
+| 1-Year  | -$3.00 |
+
+This is because, for each rate, the sum of the credits for slower rates is:
+
+#+begin_src python :exports results :results raw :noweb yes
+<<balance_full>>
+return partial_totals(example_balance_full)
+#+end_src
+
+#+RESULTS:
+| 15-Year+ Credit | $5.00 |
+| 10-Year+ Credit | $9.00 |
+| 5-Year+ Credit  | $4.00 |
+| Total Credit    | $1.00 |
+
+A balance which is strictly solvent will always be solvent[fn:1]. Informally, this is because the
+debt at faster rates will go away faster than credit at slower rates. In fact,
+if there is no interest then all of the partial credit sums eventually converge
+to $10 in this example. Figure [[fig:partial-sums-of-credit]] shows the partial
+credit sums over time for the example balance.
+
+[fn:1] See Appendix [[Strictly Solvent Balances Are Always Solvent (Proof)]] for a proof of this claim.
+
+#+begin_src python :exports results :noweb yes :results file
+import matplotlib.pyplot as plt
+from matplotlib.ticker import FuncFormatter
+import numpy as np
+
+file_name = "partial_sums_of_credit.svg"
+
+<<balance_full>>
+
+
+def partial_sums(balance: Balance):
+    keys = iter(balance.__dict__.keys())
+    next(keys)
+    for this_key in keys:
+
+        total = 0
+        for other_key, value in balance.__dict__.items():
+            total += value
+            if other_key is this_key:
+                break
+        yield total
+
+
+def balance_time_series(balance: Balance, quarters: int):
+    return list(
+        map(
+            list,
+            zip(*[list(partial_sums(update(balance, q))) for q in range(quarters)]),
+        )
+    )
+
+
+plt.rcParams["font.family"] = "Times New Roman"
+plt.rcParams["text.color"] = "black"
+plt.rcParams["mathtext.fontset"] = "dejavuserif"
+fig = plt.figure()
+ax = fig.add_subplot(1, 1, 1)
+
+series = balance_time_series(example_balance_full, 4 * 15)
+(l1,) = ax.plot(series[0], '--', marker=".", color="blue", linewidth = 1)
+(l2,) = ax.plot(series[1], '--', marker="^", color="red", linewidth = 1)
+(l3,) = ax.plot(series[2], '--', marker="s", color="purple", linewidth = 1)
+(l4,) = ax.plot(series[3], '--', marker="D", color="green", linewidth = 1)
+(l0,) = ax.plot([example_balance_full.cash for _ in series[0]], '--', color="black", linewidth = 1)
+ax.grid(True)
+ax.set(xlabel="Quarters Passed", ylabel="Total Credit ($\$$)")
+ax.legend(
+    (l0, l1, l2, l3, l4),
+    ("Cash", "15-Year+ Credit", "10-Year+ Credit", "5-Year+ Credit", "Total Credit"),
+    loc="lower right",
+    shadow=False,
+)
+fig.savefig(file_name)
+return file_name
+#+end_src
+
+#+CAPTION: Partial credit totals over time in the example /strictly solvent/ balance. The model ignores interest. As all the credit and debt goes away, the partial credit totals converge to the $10 cash reserve in the example. The $10 cash reserve is the black dotted line.
+#+LABEL: fig:partial-sums-of-credit
+#+RESULTS:
+[[file:partial_sums_of_credit.svg]]
+
+Checking if a balance is strictly solvent is simple. A blockchain can check if a
+balance is strictly solvent in an efficient manner. All it needs to do is check
+if all the partial sums of credit are solvent. Not every balance which is
+forever solvent follows this rule. Appendix [[Example of a Forever Solvent Balance which is not Strictly Solvent]] presents such a balance that is forever solvent but
+not strictly solvent.
+
+* Forever Solvent Balances are Transferable
+
+If an account can afford to, it can transfer a balance if that balance will
+always be solvent. To afford a transfer an account must remain forever solvent
+afterwards. This way the rule that all balances must be always be solvent remains
+true.
+
+Cash and credit are examples of transferable balances. Transferring credit is
+the same as giving out a loan. To see this, suppose that Bob has the following
+starting balance:
+
+#+begin_src python :exports results :results raw :noweb yes
+<<balance_15_year>>
+return balance_to_table(Balance(35, 0))
+#+end_src
+
+#+RESULTS:
+| Cash           | $30.00 |
+| 15-Year LOC | $0.00  |
+
+If Bob transfers $10 worth of 15-year credit to Alice, his balance will be:
+
+#+begin_src python :exports results :results raw :noweb yes
+<<balance_15_year>>
+return balance_to_table(Balance(35, -10))
+#+end_src
+
+#+RESULTS:
+| Cash           | $30.00  |
+| 15-Year LOC | -$10.00 |
+
+An account can only transfer cash less than the total it posses. Otherwise,
+the account would have negative cash. In the long run, any credit will that
+account has will run out and the account balance will be negative.
+
+Accounts can only make loans if they have enough reserve cash and credit. An
+account with only $10 cash cannot transfer $1000 worth of 15-year credit. It
+would go into debt and not be solvent. An account with $100 worth of 15-year
+credit can transfer $50 worth of 10-year credit. It would use the $100 as
+reserve.
+
+Transferable balances could include debt as long as the account making the
+transfer remains forever solvent. For example, suppose that Bob started $30. Bob
+may send Alice $10 worth of 15-year credit and -$10 worth of 10-year debt. This
+is not a problem because Alice will still be solvent for all times in the
+future. Even though Bob sent 10-ear debt to Alice, he also sent 15-year credit.
+The 15-year credit he sent is more valuable. The balance Bob sent to Alice will
+be a net positive in credit after a quarter.
+
+* Models For Exchange Rates For Lent Capital
+** Basic Long-Term Compound Interest Model
+A way to model exchange rates for credit is to use relative long-term compound
+interest. This is because in the long run lent credit goes away but accrued
+interest remains. The interest acquired has no bound. This reasoning holds
+for cash as well, even though it does not get returned. In the long run compound
+interest dominates the seed cash the account started off with. One may use limiting
+compound interest to find exchange rates. A way to do this is to look at the
+ratio of those limits.
+
+The compounded interest for credit with a particular rate has a closed from.
+Assume a quarterly interest rate of \(i\). Furthermore, assume the system
+returns a fraction \(r\) of the credit every quarter. Starting with $1 of
+credit, the amount of interest after 1 quarter is:
+
+\[
+\varphi_r(1) = i
+\]
+
+After \(n\) quarters the amount of accrued compound interest obeys the recurrence:
+
+\[
+\varphi_r(n) = i (1 - r)^{n - 1} + (1 + i) \varphi(n-1)
+\]
+
+The reason this expression includes a \(i (1-r)^{n-1}\) term is as follows.  After each quarter the system returns a fraction \(r\) of the remaining credit.  In the next quarter what remains accrues interest. After \(n\) quarters the interest on the remaining credit is \(i (1-r)^{n-1}\). The \((1+i)\varphi(n-1)\) term comes from the compound interest from the previous quarter.
+
+The closed form for this recurrence is:
+
+\begin{align*}
+\varphi_r(n)
+   & = \sum _{k=0}^{n-1} i (1-r)^k (i+1)^{n-k}\\
+   & = \frac{i (i+1) \left((i+1)^n-(1-r)^n\right)}{i+r}
+\end{align*}
+
+The limiting ratio of compound interest for two rates expresses a conversion
+rate. For rates \(r_1\) and \(r_2\) this limit has the closed form:
+
+\[
+\lim_{n \to \infty} \frac{\varphi_{r_1}(n)}{\varphi_{r_2}(n)} = \frac{i+r_2}{i+r_1}
+\]
+
+For cash the rate \(r\) is 0.  Table [[table:basic-model-conversion-rates]] provides exchange rates using this closed form:
+
+#+begin_src python :exports results :results raw :noweb yes
+from tabulate import tabulate
+
+<<format_entry>>
+
+i = 1.05 ** (1.0 / 4.0) - 1
+r_15 = 1 - 0.01 ** (1.0 / (15.0 * 4.0))
+r_10 = 1 - 0.01 ** (1.0 / (10.0 * 4.0))
+r_5 = 1 - 0.01 ** (1.0 / (5.0 * 4.0))
+r_2 = 1 - 0.01 ** (1.0 / (2.0 * 4.0))
+r_1 = 1 - 0.01 ** (1.0 / (4.0))
+
+return tabulate(
+    [
+        [f"$1 Cash", "\(\\approx\)", f"{format_entry((i + r_15)/i)} 15-Year LOCs"],
+        [f"$1 Cash", "\(\\approx\)", f"{format_entry((i + r_10)/i)} 10-Year LOCs"],
+        [f"$1 Cash", "\(\\approx\)", f"{format_entry((i + r_5)/i)} 5-Year LOCs"],
+        [f"$1 Cash", "\(\\approx\)", f"{format_entry((i + r_2)/i)} 2-Year LOCs"],
+        [f"$1 Cash", "\(\\approx\)", f"{format_entry((i + r_1)/i)} 1-Year LOCs"],
+    ],
+    tablefmt="orgtbl",
+)
+#+end_src
+
+#+CAPTION: Conversion rates for cash to credit using the basic long-term compound interest model. The table assumes a 5% APY with balances updated quarterly.
+#+LABEL: table:basic-model-conversion-rates
+#+RESULTS:
+| $1 Cash | \(\approx\) | $7.02 15-Year LOCs |
+| $1 Cash | \(\approx\) | $9.86 10-Year LOCs |
+| $1 Cash | \(\approx\) | $17.76 5-Year LOCs |
+| $1 Cash | \(\approx\) | $36.66 2-Year LOCs |
+| $1 Cash | \(\approx\) | $56.72 1-Year LOCs |
+
+** Long-Term Compound Interest With Discounted Cash Flow
+
+A way to extend the long-term interest model is to incorporate /Discounted Cash
+Flow/ (DCF). Valuation using DCF captures the diminishing utility of money. Let
+\(d\) denote the discount rate. As before, let \(i\) denote the interest rate
+and \(r\) denote the credit return rate. The following recurrence computes the
+DCF long-term compound interest for $1 of credit:
+
+\begin{align*}
+\psi_r(1) & = i \\
+\psi_r(n) & = {\frac{i}{(1+d)^{1-n}}} (1-r)^{n-1}+\left(1 + \frac{i}{(1+d)^{1-n}}\right)\psi_r(n-1)
+\end{align*}
+
+Let \(F=1/(1+d)\). The recurrence for \(\psi_r(n)\) has the following equivalent expression:
+
+\begin{align*}
+\psi_r(n) & = \sum _{k=0}^{n-1} \left(i F^k \left(\prod _{j=k+1}^{n-1} \left(i F^j+1\right)\right)(1-r)^k \right) \\
+& = \sum _{k=0}^{n-1} i F^k \left(-i F^{k+1};F\right)_{n-k-1} (1-r)^k 
+\end{align*}
+
+The summation above uses the /\(q\)-Pochhammer/ symbol \((a;q)_n =
+\prod_{k=0}^{n-1} (1-a\,q^k)\) from the theory of basic hypergeometric series
+[[cite:&berndt_what_2012]].
+
+The DCF exchange rate is closer to 1 to 1 than without discounting.
+
+#+begin_src python :exports none :results none :noweb yes :noweb-ref dcf
+from tabulate import tabulate
+
+<<format_entry>>
+
+i = 1.05 ** (1.0 / 4.0) - 1
+
+
+def q_pochhammer(a: float, q: float, n: int) -> float:
+    from math import prod
+
+    return prod(1 - a * q ** k for k in range(0, n))
+
+def psi(i: float, d: float, r: float, n: int) -> float:
+    F = 1.0 / (1 + d)
+    return sum(i * F ** k * q_pochhammer())
+#+end_src
+
+#+begin_src python :exports none :results value :noweb yes
+<<dcf>>
+return q_pochhammer(2,3,4)
+#+end_src
+
+#+RESULTS:
+: 4505
+
+#+begin_src bibtex :exports none :tangle "./risk-free-lending-refs.bib"
+@incollection{berndt_what_2012,
+	address = {Somerville, Mass},
+	series = {Lecture notes series / {Ramanujan} {Mathematical} {Society}},
+	title = {What is a $q$-series?},
+	isbn = {978-1-57146-245-9},
+	url = {https://faculty.math.illinois.edu/~berndt/articles/q.pdf},
+	language = {eng},
+	number = {14},
+	booktitle = {Ramanujan rediscovered: proceedings of a {Conference} on {Elliptic} {Functions}, {Partitions}, and $q$-{Series} in memory of {K}. {Venkatachaliengar}, {Bangalore}, {June} 2009},
+	publisher = {International Press},
+	author = {Berndt, Bruce C.},
+	editor = {Berndt, Bruce C. and Venkatachaliengar, K. and Cooper, Shaun and Deka, Nayandeep and Huber, Tim and Schlosser, Michael},
+	year = {2012},
+	note = {Meeting Name: Conference on Elliptic Functions, Partitions, and Q-Series},
+	pages = {31--51},
+	annote = {Literaturangaben},
+}
+#+end_src
+
+** Relative Opportunity Cost Model
+* Conclusion
+* References
+  :PROPERTIES:
+  :UNNUMBERED: t
+  :END:
+  #+LaTeX: \printbibliography[heading=none]
+
+#+LaTeX: \appendix
+* Strictly Solvent Balances Are Always Solvent (Proof)
+* The DCF Exchange Rate Is Closer to 1 to 1 Than Without Discounting (Proof)
+* Example of a Forever Solvent Balance which is not Strictly Solvent
+* Prototype Implementation In Rust
+
+# Local Variables:
+# org-latex-pdf-process: ("latexmk -bibtex -file-line-error -shell-escape -pdflatex=xelatex -pdf -output-directory=\"%o\" -f \"%f\"")
+# bibtex-completion-bibliography: ("./risk-free-lending-refs.bib")
+# fill-column: 80
+# End:

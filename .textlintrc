@@ -1,0 +1,18 @@
+{
+    "plugins": {
+        "@textlint/text": {
+            "extensions": [
+                ".org"
+            ]
+        }
+    },
+    "rules": {
+        "sentence-length": false,
+        "write-good": {
+            "adverb": false,
+            "passive": true,
+            "thereIs": true,
+            "tooWordy": false
+        }
+    }
+}

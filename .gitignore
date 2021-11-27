@@ -1,0 +1,13 @@
+.DS_Store
+*.bbl
+*.bib
+*.pdf
+*.synctex.gz
+*.pyg
+*.tex
+*.svg
+*.tex~
+_minted-*/
+auto/
+ltximg/
+svg-inkscape/
