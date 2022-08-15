@@ -215,6 +215,7 @@ URL`https://black.readthedocs.io/en/stable/the_black_code_style/current_style.ht
   (org-todo-keywords
     '((sequence "TODO(t)" "WAITING(w)" "|" "DONE(d)" "CANCELED(c@)")))
   (org-todo-keyword-faces '(("CANCELED" . warning)))
+  (org-latex-caption-above nil)
   (org-latex-compiler
     "latexmk -shell-escape -pdflatex=xelatex -pdf")
   (org-latex-create-formula-image-program 'dvisvgm)
@@ -250,11 +251,11 @@ URL`https://black.readthedocs.io/en/stable/the_black_code_style/current_style.ht
   (org-latex-pdf-process
     '(
        ;; "latexmk -bibtex -file-line-error -shell-escape -pdflatex=xelatex -pdf -output-directory=\"%o\" -f \"%f\""
-       "latexmk -file-line-error -shell-escape -pdflatex=xelatex -pdf -output-directory=\"%o\" -f \"%f\""
+       "latexmk -bibtex -file-line-error -shell-escape -pdflatex=xelatex -pdf -output-directory=\"%o\" -f \"%f\""
        ))
   ;; Trust svgbob code blocks
   ;; https://emacs.stackexchange.com/a/21128
-  (org-confirm-babel-evaluate        #'(lambda (lang _) (not (member lang '("svgbob")))))
+  (org-confirm-babel-evaluate        #'(lambda (lang _) (not (member lang '("svgbob" "python")))))
   (org-link-frame-setup              '((file . find-file)))
   (org-list-allow-alphabetical       t)
   (org-modules '(
@@ -281,15 +282,12 @@ URL`https://black.readthedocs.io/en/stable/the_black_code_style/current_style.ht
   (org-support-shift-select          t)
   (org-pretty-entities               nil)
   (org-preview-latex-default-process 'dvisvgm)
-  (python-indent-offset              4)
 
 
   :init
   ;;;;;;;;;;;;;;;;;;;;;;;;;; Language Support ;;;;;;;;;;;;;;;;;;;;;;;;
 
   ;; Standard languages
-
-
 
   (org-babel-do-load-languages
     'org-babel-load-languages

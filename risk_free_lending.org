@@ -1,5 +1,5 @@
 # -*- mode: org; -*-
-#+TITLE: Risk Free Lending 
+#+TITLE: Risk-Free Lending
 #+AUTHOR: Matthew Doty
 #+DATE:
 #+STARTUP: latexpreview inlineimages
@@ -7,642 +7,959 @@
 #+LATEX_HEADER: \usepackage[natbib=true]{biblatex} \DeclareFieldFormat{apacase}{#1} \addbibresource{./risk-free-lending-refs.bib}
 #+LATEX_HEADER: \usepackage[toc,page]{appendix}
 #+LATEX_HEADER: \usepackage{array}
+#+LATEX_HEADER: \usepackage{hhline}
 #+LATEX_HEADER: \usepackage{kotex}
 #+LATEX_HEADER: \usepackage{multirow}
 #+LATEX_HEADER: \usepackage{parskip}
 #+LATEX_HEADER: \usepackage{svg}
+#+LATEX: \renewcommand{\thetheorem}{\arabic{theorem}}
 #+OPTIONS: toc:nil
+#+OPTIONS: tex:t
 
 * Introduction
 :PROPERTIES:
 :CREATED:  [2022-06-13 Mon 11:36]
 :END:
 
-One way of financing is to lend capital to another so they can collect interest.
-An example of this is the practice of /jeonse/ (전세) in the South Korean
-housing market. In South Korea, people often do not pay rent. Instead, they lend
-a large fraction of the value of the home they are leasing to a landlord that
-owns the property. This enables financing outside of the traditional banking
-system [[cite:&shin_financing_2013]]. While they live in that home, the landlord
-invests the capital and collects dividends. When a person moves away they take
-their deposit back from the landlord.
+One way of financing is to lend capital to another so they can
+reinvest it. An example of this is the practice of /jeonse/ ( 전세) in
+the South Korean housing market. In South Korea, people often do not
+pay rent. Instead, they lend a large fraction of the value of the home
+they are leasing to a landlord that owns the property. This enables
+financing outside of the traditional banking system
+[[cite:&shin_financing_2013]]. While they live in that home, the landlord
+invests the capital and collects dividends. When a person moves away
+they take their deposit back from the landlord.
 
 Because of counter-party risk, lending capital this way does not work for
-micropayments. Imagine that Alice buys a burger from Bob and wants to settle by
+micro-payments. Imagine that Alice buys a burger from Bob and wants to settle by
 offering Bob a 15-year loan of $35. Bob might not return the money to Alice.
 Rather than trusting Bob, Alice will find it more attractive to settle as usual
 by paying her flat out.
 
-Blockchains stop counter-party risk by enabling programmed return payments as
-well as make defaulting impossible. They can also enable automatic interest
-distribution. That way holders of capital can effectively receive dividends.
-Proof of stake blockchains naturally pay interest. Examples of proof of stake
-chains include Tendermint [[cite:&buchman_latest_2019]], Solana
-[[cite:&yakovenko_solana_2018]] and Polkadot [[cite:&wood_polkadot_2016]]. And while a
-blockchain could track counter-party obligations, this is not necessary.
+Blockchains stop counter-party risk by enabling programmed return
+payments as well as make defaulting impossible. They can also enable
+automatic interest distribution. That way holders of capital can
+effectively receive dividends without reinvesting. Proof of stake
+blockchains naturally pay out interest. Examples of proof of stake
+chains include Tendermint [[cite:&buchman_latest_2019]] and Solana
+[[cite:&yakovenko_solana_2018]]. And while a blockchain could track
+counter-party obligations, we will demonstrate this is not necessary.
+In addition, since paying for blockchain transactions themselves
+require micro-payments, we expect blockchain validators to naturally
+accept loans in exchange for their services to users.
 
 #+begin_src bibtex :exports none :tangle "./risk-free-lending-refs.bib"
 @techreport{buchman_latest_2019,
-	title = {The latest gossip on {BFT} consensus},
-	url = {http://arxiv.org/abs/1807.04938},
-	abstract = {The paper presents Tendermint, a new protocol for ordering events in a distributed network under adversarial conditions. More commonly known as Byzantine Fault Tolerant (BFT) consensus or atomic broadcast, the problem has attracted significant attention in recent years due to the widespread success of blockchain-based digital currencies, such as Bitcoin and Ethereum, which successfully solved the problem in a public setting without a central authority. Tendermint modernizes classic academic work on the subject and simplifies the design of the BFT algorithm by relying on a peer-to-peer gossip protocol among nodes.},
-	number = {arXiv:1807.04938},
-	urldate = {2022-06-01},
-	institution = {arXiv},
-	author = {Buchman, Ethan and Kwon, Jae and Milosevic, Zarko},
-	month = nov,
-	year = {2019},
-	doi = {10.48550/arXiv.1807.04938},
-	note = {arXiv:1807.04938 [cs]
+  title = {The latest gossip on {BFT} consensus},
+  url = {http://arxiv.org/abs/1807.04938},
+  abstract = {The paper presents Tendermint, a new protocol for ordering events in a distributed network under adversarial conditions. More commonly known as Byzantine Fault Tolerant (BFT) consensus or atomic broadcast, the problem has attracted significant attention in recent years due to the widespread success of blockchain-based digital currencies, such as Bitcoin and Ethereum, which successfully solved the problem in a public setting without a central authority. Tendermint modernizes classic academic work on the subject and simplifies the design of the BFT algorithm by relying on a peer-to-peer gossip protocol among nodes.},
+  number = {arXiv:1807.04938},
+  urldate = {2022-06-01},
+  institution = {arXiv},
+  author = {Buchman, Ethan and Kwon, Jae and Milosevic, Zarko},
+  month = nov,
+  year = {2019},
+  doi = {10.48550/arXiv.1807.04938},
+  note = {arXiv:1807.04938 [cs]
 type: article},
-	keywords = {Computer Science - Distributed, Parallel, and Cluster Computing},
-	file = {arXiv Fulltext PDF:/Users/mpwd/Zotero/storage/R5B3KVFT/Buchman et al. - 2019 - The latest gossip on BFT consensus.pdf:application/pdf;arXiv.org Snapshot:/Users/mpwd/Zotero/storage/KM57AHND/1807.html:text/html},
+  keywords = {Computer Science - Distributed, Parallel, and Cluster Computing},
+  file = {arXiv Fulltext PDF:/Users/mpwd/Zotero/storage/R5B3KVFT/Buchman et al. - 2019 - The latest gossip on BFT consensus.pdf:application/pdf;arXiv.org Snapshot:/Users/mpwd/Zotero/storage/KM57AHND/1807.html:text/html},
 }
 
 @techreport{shin_financing_2013,
-	type = {2013 {Meeting} {Papers}},
-	title = {Financing {Growth} without {Banks}: {Korean} {Housing} {Repo} {Contract}},
-	url = {https://ideas.repec.org/p/red/sed013/328.html},
-	abstract = {Imperfect financial intermediation is a key bottleneck in economic development. Korea's unique Jeonse or housing repo contract channels funds directly from tenant/lenders to landlord/entrepreneurs, by-passing the banking system. In a housing repo, the landlord/entrepreneur puts up the house as collateral when borrowing from the tenant/lender. The lender's loan is secured by living in the collateral asset, lowering the cost of capital and increasing credit. Jeonse has been the dominant form of rental contract in Korea, and has served as a mode of direct debt financing that by-passes the banking sector.},
-	number = {328},
-	institution = {Society for Economic Dynamics},
-	author = {Shin, Hyun and Kim, Se-Jik},
-	year = {2013},
-}
-
-@unpublished{wood_polkadot_2016,
-	title = {Polkadot: {Vision} for a heterogeneous multi-chain framework},
-	url = {https://polkadot.network/PolkaDotPaper.pdf},
-	author = {Wood, Gavin},
-	year = {2016},
+  type = {2013 {Meeting} {Papers}},
+  title = {Financing {Growth} without {Banks}: {Korean} {Housing} {Repo} {Contract}},
+  url = {https://ideas.repec.org/p/red/sed013/328.html},
+  abstract = {Imperfect financial intermediation is a key bottleneck in economic development. Korea's unique Jeonse or housing repo contract channels funds directly from tenant/lenders to landlord/entrepreneurs, by-passing the banking system. In a housing repo, the landlord/entrepreneur puts up the house as collateral when borrowing from the tenant/lender. The lender's loan is secured by living in the collateral asset, lowering the cost of capital and increasing credit. Jeonse has been the dominant form of rental contract in Korea, and has served as a mode of direct debt financing that by-passes the banking sector.},
+  number = {328},
+  institution = {Society for Economic Dynamics},
+  author = {Shin, Hyun and Kim, Se-Jik},
+  year = {2013},
 }
 
 @unpublished{yakovenko_solana_2018,
-	title = {Solana: {A} new architecture for a high performance blockchain},
-	url = {https://solana.com/solana-whitepaper.pdf},
-	author = {Yakovenko, Anatoly},
-	year = {2018},
+  title = {Solana: {A} new architecture for a high performance blockchain},
+  url = {https://solana.com/solana-whitepaper.pdf},
+  author = {Yakovenko, Anatoly},
+  year = {2018},
 }
 
 #+end_src
 
 * A Lending System
 
-The lending system proposed is to have a percentage of the lent money returned
-at set periods. The holder of the loan keeps whatever interest of the remaining
-capital they have upon distribution. The system could return lent money either
-annually, quarterly, or even every millisecond. Since the system returns a
-percentage, it will only return the full balance in the limit. As a practical
-measure, we have loans target 99% of the balance returned after their term. A $1
-1-year loan would reduce to $0.01 after a year, $0.0001 a year after that, etc.
+The lending system proposed is to have a percentage of the lent money
+returned at a set /update frequency/. The holder of the loan keeps
+whatever interest of the remaining capital they have upon
+distribution. The system could return lent money either annually,
+quarterly, or even every millisecond[fn::In fact, the rust prototype
+presented in Appendix [[Prototype Implementation In Rust]], which we
+intend for a blockchain implementation, lazily updates accounts every
+millisecond.]. Since the system returns a percentage, it will only
+return the full loaned amount in the limit. As a practical measure, we
+have loans target 99% of the lent amount returned after the specified
+period. For example, a $1 1-year loan would be reduce to $0.01 after a
+year, $0.0001 a year after that, etc.
 
-#+begin_src python :exports none :results none :noweb-ref format_entry
-from typing import Dict
-
-i = 1.05 ** (1.0 / 4.0) - 1
-r_15 = 1 - 0.01 ** (1.0 / (15.0 * 4.0))
-r_10 = 1 - 0.01 ** (1.0 / (10.0 * 4.0))
-r_5 = 1 - 0.01 ** (1.0 / (5.0 * 4.0))
-r_2 = 1 - 0.01 ** (1.0 / (2.0 * 4.0))
-r_1 = 1 - 0.01 ** (1.0 / (4.0))
-
-
-def update_balance(entries):
-    for (key, value) in entries.items():
-        if key.lower() is "cash":
-            entries[key] += i * sum(entries.values())
-        elif key.lower() is "15-yr":
-            entries[key] *= r_15
-        elif key.lower() is "10-yr":
-            entries[key] *= r_10
-        elif key.lower() is "5-yr":
-            entries[key] *= r_5
-        elif key.lower() is "2-yr":
-            entries[key] *= r_2
-        elif key.lower() is "1-yr":
-            entries[key] *= r_1
-        else:
-            raise Exception(f"Uknown key: {key}")
+#+begin_src python :exports none :results none :noweb-ref format_accounts
+from typing import Dict, List
+import json
 
 
-def total_assets(balance):
-    return sum(balance.__dict__.values())
-
-
-def format_entry(value: float) -> str:
-    return f"{'-' if value < 0 else ''}${abs(round(value, 2)):,.2f}"
+def format_abs_no_escape(value):
+    return f"${abs(round(value, 2)):,.2f}"
 
 
 def format_value(value):
-    return f"\\${abs(round(value, 2)):,.2f}"
+    return "{%s\\%s}" % ("" if value >= 0 else "-", format_abs_no_escape(value))
 
 
-def format_account(account_name: str, entries: Dict[str, float]) -> str:
-    header = (
-        """
-\\multicolumn{3}{c}{%s}\\\\
-\\multicolumn{1}{c}{} & \\multicolumn{1}{c}{Debit} & \\multicolumn{1}{c}{Credit}\\\\
-\\cline{2-3}
-"""
-        % account_name
+def get_loan_types(accounts: Dict[str, Dict[str, float]]) -> List[str]:
+    raw_loan_types_set = set(
+        loan_type for account in accounts.values() for loan_type in account.keys()
     )
-    rows = []
-    for description, value in entries.items():
-        if description.lower() is "cash":
-            rows.append(f"Cash & {format_value(value)} & \\\\")
-        elif value == 0:
-            rows.append(" & & \\\\")
-        elif value < 0:
-            rows.append(f"{description} & & {format_value(-value)} \\\\")
-        elif value > 0:
-            rows.append(f"{description} & {format_value(value)} & \\\\")
-    output = """
-\\begin{tabular}{l c|c}
-%s
-%s
-\\end{tabular}
-""" % (
-        header,
-        "\n".join(rows),
-    )
-    return output
+    loan_types = []
+    if "Cash" in raw_loan_types_set:
+        loan_types.append("Cash")
+        raw_loan_types_set.remove("Cash")
+    raw_loan_types_list = list(raw_loan_types_set)
+    raw_loan_types_list.sort(key=lambda s: int(s.split("-")[0]))
+    raw_loan_types_list.reverse()
+    loan_types.extend(raw_loan_types_list)
+    return loan_types
 
 
 def format_accounts(accounts: Dict[str, Dict[str, float]]) -> str:
-    fraction = round(0.9 / len(accounts), 1)
-    t_accounts = []
-    for (account_name, entries) in accounts.items():
-        new_minipage = """\\begin{minipage}[t]{%0.1f\\textwidth}
-  \\centering
-  %s
-\\end{minipage}""" % (
-            fraction,
-            format_account(account_name, entries),
-        )
-        t_accounts.append(new_minipage)
-    return "\n".join(t_accounts)
-#+end_src
-
-#+begin_src python :exports none :results none :noweb yes :noweb-ref balance_15_year
-from dataclasses import dataclass
-
-quarterly_interest = 1.05 ** (1.0 / 4.0) - 1
-r_15 = 1 - 0.01 ** (1.0 / (15.0 * 4.0))
-
-
-@dataclass
-class Balance:
-    cash: float
-    fifteen_year: float
-
-
-<<format_entry>>
-
-initial_balance = Balance(0, 35)
-   
-def balance_to_table(balance):
-    from tabulate import tabulate
-
-    return tabulate(
-        [
-            ["Cash", format_entry(balance.cash)],
-            ["15-Year LOC", format_entry(balance.fifteen_year)],
-        ],
-        headers
-        tablefmt="orgtbl",
+    columns = " p{0.5ex} ".join("c|c" for _ in accounts.items())
+    account_titles = "& &".join(
+        "\\multicolumn{2}{c}{%s}" % account_name for account_name in accounts.keys()
     )
-
-def update(balance, quarters=1):
-    import copy
-
-    balance = copy.deepcopy(balance)
-    for _ in range(quarters):
-        balance.cash += quarterly_interest * total_assets(balance)
-        balance.fifteen_year *= 1 - r_15
-    return balance
+    t_account_headers = " & & ".join("Debit & Credit" for _ in accounts.items())
+    t_account_clines = " ".join(
+        "\\cline{%d-%d}" % (3 * n + 2, 3 * n + 3) for n in range(len(accounts.items()))
+    )
+    rows = []
+    for loan_type in get_loan_types(accounts):
+        row = []
+        for account in accounts.values():
+            if loan_type not in account:
+                row.append(" & ")
+                continue
+            value = account[loan_type]
+            if value == 0:
+                row.append(" & ")
+            elif value < 0:
+                row.append(f" & {format_value(-value)} ")
+            elif value > 0:
+                row.append(f" {format_value(value)} & ")
+        rows.append("%s & %s" % (loan_type, " & & ".join(row)))
+    hhline = "\\hhline{~%s}" % "~".join("==" for _ in accounts.items())
+    account_navs = " & & ".join(
+        (
+            "\\multicolumn{2}{c}{NAV: {%s%s}}"
+            % (
+                "\\color{red} " if (nav := sum(account.values())) < 0 else "",
+                format_value(nav),
+            )
+        )
+        for account in accounts.values()
+    )
+    output = """
+\\begin{center}
+\\begin{tabular}{l %s}
+ & %s \\\\
+ & %s \\\\
+%s
+%s \\\\
+\\noalign{\\vskip 0.5ex}
+%s
+\\noalign{\\vskip 0.5ex}
+ & %s \\\\
+\\end{tabular}
+\\end{center}
+""" % (
+        columns,
+        account_titles,
+        t_account_headers,
+        t_account_clines,
+        " \\\\\n".join(rows),
+        hhline,
+        account_navs,
+    )
+    return output
 #+end_src
 
-Below is a worked example. Recall the thought experiment from \S[[Introduction]] involving Alice lending money to Bob in exchange for a burger. Assume that Alice's balance starts $50 in cash and Bob's balance starts empty. Alice lends Bob $35 for 15 years to finance her meal.  There balances would be represented by the following T-accounts:
-
-#+name: accounts-1
-#+BEGIN_SRC python :exports none :results output
+#+NAME: accounts-0
+#+BEGIN_SRC python :exports none :results code replace
 import json
 
 accounts = {
-    "Alice's Account": {"Cash": 50, "15-Yr": -35},
-    "Bob's Account": {"Cash": 0, "15-Yr": 35},
+    "Alice": {"Cash": 50},
+    "Bob": {"Cash": 0},
 }
 
-print(json.dumps(accounts, indent=4))
+return json.dumps(accounts, indent=4)
 #+END_SRC
 
-#+RESULTS: accounts-1
-#+begin_example
+#+RESULTS: accounts-0
+#+begin_src python
 {
-    "Alice's Account": {
-        "Cash": 50,
-        "15-Yr": -35
+    "Alice": {
+        "Cash": 50
     },
-    "Bob's Account": {
-        "Cash": 0,
-        "15-Yr": 35
+    "Bob": {
+        "Cash": 0
     }
 }
-#+end_example
+#+end_src
 
-#+begin_src python :exports results :results drawer replace :noweb yes :var accounts=accounts-1
-<<format_entry>>
-import json
+
+The following is a worked example. Recall the thought experiment from
+\S[[Introduction]] involving Alice lending money to Bob in exchange for a burger.
+Assume that Alice's account starts with $50 in cash and Bob's starts empty.
+
+#+begin_src python :exports results :results drawer replace latex :noweb yes :var accounts=accounts-0
+<<format_accounts>>
 
 return format_accounts(json.loads(accounts))
 #+end_src
 
 #+RESULTS:
-:results:
-\begin{minipage}[t]{0.5\textwidth}
-  \centering
-  
-\begin{tabular}{l c|c}
-
-\multicolumn{3}{c}{Alice's Account}\\
-\multicolumn{1}{c}{} & \multicolumn{1}{c}{Debit} & \multicolumn{1}{c}{Credit}\\
-\cline{2-3}
-
-Cash & \$50.00 & \\
-15-Yr & & \$35.00 \\
+#+begin_export latex
+\begin{center}
+\begin{tabular}{l c|c p{0.5ex} c|c}
+ & \multicolumn{2}{c}{Alice}& &\multicolumn{2}{c}{Bob} \\
+ & Debit & Credit & & Debit & Credit \\
+\cline{2-3} \cline{5-6}
+Cash &  {\$50.00} &  & &  &  \\
+15-Yr &  &  & &  &  \\
+\noalign{\vskip 0.5ex}
+\hhline{~==~==}
+\noalign{\vskip 0.5ex}
+ & \multicolumn{2}{c}{NAV: {{\$50.00}}} & & \multicolumn{2}{c}{NAV: {{\$0.00}}} \\
 \end{tabular}
+\end{center}
+#+end_export
 
-\end{minipage}
-\begin{minipage}[t]{0.5\textwidth}
-  \centering
-  
-\begin{tabular}{l c|c}
 
-\multicolumn{3}{c}{Bob's Account}\\
-\multicolumn{1}{c}{} & \multicolumn{1}{c}{Debit} & \multicolumn{1}{c}{Credit}\\
-\cline{2-3}
+Alice then lends Bob $35 for 15 years to finance her meal. After this transaction we
+can represent the resulting ledger using T-accounts as follows:
 
- & & \\
-15-Yr & \$35.00 & \\
-\end{tabular}
+#+NAME: accounts-1
+#+BEGIN_SRC python :exports none :results code replace
+import json
 
-\end{minipage}
-:end:
+accounts = {
+    "Alice": {"Cash": 50, "15-Yr": -35},
+    "Bob": {"Cash": 0, "15-Yr": 35},
+}
 
-A software representation of their balances would be equivalent to listing [[accounts-1-listing]].
+return json.dumps(accounts, indent=4)
+#+END_SRC
 
-#+begin_src python :exports results :results drawer replace :noweb yes :var accounts=accounts-1
-return accounts
-#+end_src
-
-#+CAPTION: Alice and Bob's accounts represented as a JSON or Python Dictionary 
-#+NAME: accounts-1-listing
-#+ATTR_LATEX: :environment 
-#+RESULTS:
-:results:
+#+HEADER: :exports none :results none :noweb-ref accounts-1
+#+RESULTS: accounts-1
+#+begin_src python
 {
-    "Alice's Account": {
+    "Alice": {
         "Cash": 50,
         "15-Yr": -35
     },
-    "Bob's Account": {
+    "Bob": {
         "Cash": 0,
         "15-Yr": 35
     }
 }
-:end:
+#+end_src
 
-In 15 years she will only have $0.35 left. This means every quarter she loses
-approximately \(7.39\%\) of her /remaining/ credit. Before deducting credit from her
-balance she receives a distribution of interest. At a \(5\%\) APY she earns
-roughly \(1.23\%\) interest every quarter. After a quarter her balance would be:
 
-#+begin_src python :exports none :results raw :noweb yes
-<<balance_15_year>>
-return balance_to_table(update(initial_balance))
+#+begin_src python :exports none :results code replace :noweb yes :var accounts=accounts-1
+<<format_accounts>>
+
+return get_loan_types(json.loads(accounts))
+#+end_src
+
+#+HEADER: :exports none :results none
+#+RESULTS:
+#+begin_src python
+['Cash', '15-Yr']
+#+end_src
+
+#+begin_src python :exports results :results drawer replace latex :noweb yes :var accounts=accounts-1
+<<format_accounts>>
+
+return format_accounts(json.loads(accounts))
 #+end_src
 
 #+RESULTS:
-| Cash        | $0.43  |
-| 15-Year LOC | $32.41 |
+#+begin_export latex
+\begin{center}
+\begin{tabular}{l c|c p{0.5ex} c|c}
+ & \multicolumn{2}{c}{Alice}& &\multicolumn{2}{c}{Bob} \\
+ & Debit & Credit & & Debit & Credit \\
+\cline{2-3} \cline{5-6}
+Cash &  {\$50.00} &  & &  &  \\
+15-Yr &  & {\$35.00}  & &  {\$35.00} &  \\
+\noalign{\vskip 0.5ex}
+\hhline{~==~==}
+\noalign{\vskip 0.5ex}
+ & \multicolumn{2}{c}{NAV: {{\$15.00}}} & & \multicolumn{2}{c}{NAV: {{\$35.00}}} \\
+\end{tabular}
+\end{center}
+#+end_export
 
-| Cash        | \(0.0123 \times \$35 + \$0 \approx \$0.43\)  |
-| 15-Year LOC | \((1 - 0.0739) \times \$35 \approx \$32.41\) |
+A software representation of Alice and Bob's accounts might
+look something like Listing [[accounts-1-listing]]. There we use a data
+structure with ordered fields rather than a T-account.
 
-After a year her balance would be:
+#+begin_src python :exports results :results value code :noweb yes :var accounts=accounts-1 :eval never-export
+return accounts
+#+end_src
 
-#+begin_src python :exports results :results raw :noweb yes
-<<balance_15_year>>
-return balance_to_table(update(initial_balance, 4))
+#+CAPTION: A /python dictionary/ representation of a ledger containing accounts for Alice and Bob. Note that this representation is inappropriate for production. Appendix [[Prototype Implementation In Rust]] presents a prototype in the rust programming language suited to an actual blockchain implementation.
+#+NAME: accounts-1-listing
+#+RESULTS:
+#+begin_src python
+{
+    "Alice": {
+        "Cash": 50,
+        "15-Yr": -35
+    },
+    "Bob": {
+        "Cash": 0,
+        "15-Yr": 35
+    }
+}
+#+end_src
+
+In 15 years Bob will only have $0.35 left of the capital that Alice
+lent to him. This means every quarter he has deducted approximately
+\(7.39\%\) of his /remaining/ 15-year lent capital. Before this his
+account receives a distribution of interest. At a \(5\%\) APY both
+Alice and Bob earn roughly \(1.23\%\) interest every quarter on the
+/Net Asset Value/ (NAV) of their accounts. The NAV of an account is
+the sum of all of the entries in the ``Debit'' column minus the values
+in the entries in the ``Credit'' column. In the current example,
+Alice's NAV is \(\$50 - \$35 = \$25\) and Bob's NAV is \(\$35\).
+Listing [[net-asset-value-listing]] in Appendix [[Toy Python Implementation]]
+presents how to do this calculation in the python programming
+language.
+
+#+begin_src python :exports none :results none :noweb-ref update_account
+from typing import Dict
+
+
+# Quarterly interest at a 5.0% APY
+i = 1.05 ** (1.0 / 4.0) - 1
+
+# Rates for 99% loans return periods specified in years.
+loan_return_rates = {
+    "15-Yr": 0.01 ** (1.0 / (15.0 * 4.0)),
+    "10-Yr": 0.01 ** (1.0 / (10.0 * 4.0)),
+    "5-Yr": 0.01 ** (1.0 / (5.0 * 4.0)),
+    "2-Yr": 0.01 ** (1.0 / (2.0 * 4.0)),
+    "1-Yr": 0.01 ** (1.0 / 4.0),
+}
+
+
+def update_account(account: Dict[str, float], quarters=1):
+    "Update an account."
+    for _ in range(quarters):
+        for (key, value) in account.items():
+            if key == "Cash":
+                # Note: sum of account values = net asset value...
+                account[key] += i * sum(account.values())
+            elif key in loan_return_rates:
+                account[key] *= loan_return_rates[key]
+            else:
+                raise Exception(f"Unknown key: {key}")
+
+
+def update_ledger(ledger: Dict[str, Dict[str, float]], quarters=1):
+    "Update every account in a ledger."
+    for account in ledger.values():
+        update_account(account, quarters)
+#+end_src
+
+After a quarter Alice and Bob's accounts would be:
+
+#+begin_src python :exports results :results drawer replace latex :noweb yes :var accounts=accounts-1
+<<format_accounts>>
+<<update_account>>
+ledger = json.loads(accounts)
+update_ledger(ledger)
+
+return format_accounts(ledger)
 #+end_src
 
 #+RESULTS:
-| Cash        | $1.57  |
-| 15-Year LOC | $25.75 |
+#+begin_export latex
+\begin{center}
+\begin{tabular}{l c|c p{0.5ex} c|c}
+ & \multicolumn{2}{c}{Alice}& &\multicolumn{2}{c}{Bob} \\
+ & Debit & Credit & & Debit & Credit \\
+\cline{2-3} \cline{5-6}
+Cash &  {\$50.18} &  & &  {\$0.43} &  \\
+15-Yr &  & {\$32.41}  & &  {\$32.41} &  \\
+\noalign{\vskip 0.5ex}
+\hhline{~==~==}
+\noalign{\vskip 0.5ex}
+ & \multicolumn{2}{c}{NAV: {{\$17.77}}} & & \multicolumn{2}{c}{NAV: {{\$32.84}}} \\
+\end{tabular}
+\end{center}
+#+end_export
+
+After a year their accounts would be:
+
+#+begin_src python :exports results :results drawer replace latex :noweb yes :var accounts=accounts-1
+<<format_accounts>>
+<<update_account>>
+ledger = json.loads(accounts)
+update_ledger(ledger, quarters = 4)
+
+return format_accounts(ledger)
+#+end_src
+
+#+RESULTS:
+#+begin_export latex
+\begin{center}
+\begin{tabular}{l c|c p{0.5ex} c|c}
+ & \multicolumn{2}{c}{Alice}& &\multicolumn{2}{c}{Bob} \\
+ & Debit & Credit & & Debit & Credit \\
+\cline{2-3} \cline{5-6}
+Cash &  {\$50.93} &  & &  {\$1.57} &  \\
+15-Yr &  & {\$25.75}  & &  {\$25.75} &  \\
+\noalign{\vskip 0.5ex}
+\hhline{~==~==}
+\noalign{\vskip 0.5ex}
+ & \multicolumn{2}{c}{NAV: {{\$25.19}}} & & \multicolumn{2}{c}{NAV: {{\$27.31}}} \\
+\end{tabular}
+\end{center}
+#+end_export
 
 After 5 years:
 
-#+begin_src python :exports results :results raw :noweb yes
-<<balance_15_year>>
-return balance_to_table(update(initial_balance, 4 * 5))
+#+begin_src python :exports results :results drawer replace latex :noweb yes :var accounts=accounts-1
+<<format_accounts>>
+<<update_account>>
+ledger = json.loads(accounts)
+update_ledger(ledger, quarters = 4 * 5)
+
+return format_accounts(ledger)
 #+end_src
 
 #+RESULTS:
-| Cash        | $5.29 |
-| 15-Year LOC | $7.54 |
+#+begin_export latex
+\begin{center}
+\begin{tabular}{l c|c p{0.5ex} c|c}
+ & \multicolumn{2}{c}{Alice}& &\multicolumn{2}{c}{Bob} \\
+ & Debit & Credit & & Debit & Credit \\
+\cline{2-3} \cline{5-6}
+Cash &  {\$58.53} &  & &  {\$5.29} &  \\
+15-Yr &  & {\$7.54}  & &  {\$7.54} &  \\
+\noalign{\vskip 0.5ex}
+\hhline{~==~==}
+\noalign{\vskip 0.5ex}
+ & \multicolumn{2}{c}{NAV: {{\$50.98}}} & & \multicolumn{2}{c}{NAV: {{\$12.83}}} \\
+\end{tabular}
+\end{center}
+#+end_export
 
 After 10 years:
 
-#+begin_src python :exports results :results raw :noweb yes
-<<balance_15_year>>
-return balance_to_table(update(initial_balance, 4 * 10))
+#+begin_src python :exports results :results drawer replace latex :noweb yes :var accounts=accounts-1
+<<format_accounts>>
+<<update_account>>
+ledger = json.loads(accounts)
+update_ledger(ledger, quarters = 4 * 10)
+
+return format_accounts(ledger)
 #+end_src
 
 #+RESULTS:
-| Cash        | $7.89 |
-| 15-Year LOC | $1.62 |
+#+begin_export latex
+\begin{center}
+\begin{tabular}{l c|c p{0.5ex} c|c}
+ & \multicolumn{2}{c}{Alice}& &\multicolumn{2}{c}{Bob} \\
+ & Debit & Credit & & Debit & Credit \\
+\cline{2-3} \cline{5-6}
+Cash &  {\$73.56} &  & &  {\$7.89} &  \\
+15-Yr &  & {\$1.62}  & &  {\$1.62} &  \\
+\noalign{\vskip 0.5ex}
+\hhline{~==~==}
+\noalign{\vskip 0.5ex}
+ & \multicolumn{2}{c}{NAV: {{\$71.93}}} & & \multicolumn{2}{c}{NAV: {{\$9.51}}} \\
+\end{tabular}
+\end{center}
+#+end_export
 
 And finally 15 years:
 
-#+begin_src python :exports results :results raw :noweb yes
-<<balance_15_year>>
-return balance_to_table(update(initial_balance, 4 * 15))
+#+begin_src python :exports results :results drawer replace latex :noweb yes :var accounts=accounts-1
+<<format_accounts>>
+<<update_account>>
+ledger = json.loads(accounts)
+update_ledger(ledger, quarters = 4 * 15)
+
+return format_accounts(ledger)
 #+end_src
 
 #+RESULTS:
-| Cash        | $10.31 |
-| 15-Year LOC | $0.35  |
+#+begin_export latex
+\begin{center}
+\begin{tabular}{l c|c p{0.5ex} c|c}
+ & \multicolumn{2}{c}{Alice}& &\multicolumn{2}{c}{Bob} \\
+ & Debit & Credit & & Debit & Credit \\
+\cline{2-3} \cline{5-6}
+Cash &  {\$93.63} &  & &  {\$10.31} &  \\
+15-Yr &  & {\$0.35}  & &  {\$0.35} &  \\
+\noalign{\vskip 0.5ex}
+\hhline{~==~==}
+\noalign{\vskip 0.5ex}
+ & \multicolumn{2}{c}{NAV: {{\$93.28}}} & & \multicolumn{2}{c}{NAV: {{\$10.66}}} \\
+\end{tabular}
+\end{center}
+#+end_export
 
-Holders of 15-year credit can either spend that credit or issue loans for faster
-rates. For instance, shortly after receiving the $35 fifteen-year credit, Alice
-could purchase a donut by lending out $15 for 5 years. After that her balance
-would be:
+Holders of 15-year credit can either spend that credit or issue loans
+for shorter periods. For instance, shortly after receiving the $35
+fifteen-year credit, Bob could buy a donut from Carol by lending out
+$15 for 5 years. Assuming Carol's account starts out empty, the state
+of the ledger immediately after the initial burger and donut exchanges
+is:
 
-#+begin_src python :exports none :results none :noweb yes :noweb-ref balance_15_5_year
-from dataclasses import dataclass
+#+NAME: accounts-2
+#+begin_src python :exports none :results code replace :var accounts=accounts-1
+import json
 
-quarterly_interest = 1.05 ** (1.0 / 4.0) - 1
-r_15 = 1 - 0.01 ** (1.0 / (15.0 * 4.0))
-r_5 = 1 - 0.01 ** (1.0 / (5.0 * 4.0))
+accounts = json.loads(accounts)
+accounts["Alice"]["5-Yr"] = 0
+accounts["Bob"]["5-Yr"] = -15
+accounts["Carol"] =  {
+  "Cash": 0,
+  "15-Yr": 0,
+  "5-Yr": 15
+}
 
-
-@dataclass
-class Balance:
-    cash: float
-    fifteen_year: float
-    five_year: float
-
-initial_balance_2 = Balance(0, 35, -15)
-
-<<format_entry>>
-
-
-def balance_to_table(balance):
-    from tabulate import tabulate
-
-    return tabulate(
-        [
-            ["Cash", format_entry(balance.cash)],
-            ["15-Year LOC", format_entry(balance.fifteen_year)],
-            ["5-Year LOC", format_entry(balance.five_year)],
-        ],
-        tablefmt="orgtbl",
-    )
-
-def update(balance, quarters=1):
-    import copy
-
-    balance = copy.deepcopy(balance)
-    for _ in range(quarters):
-        balance.cash += quarterly_interest * total_assets(balance)
-        balance.fifteen_year *= 1 - r_15
-        balance.five_year *= 1 - r_5
-    return balance
+return json.dumps(accounts, indent=4)
 #+end_src
 
-#+begin_src python :exports results :results raw :noweb yes
-<<balance_15_5_year>>
-return balance_to_table(initial_balance_2)
+#+HEADER: :exports none :results none
+#+RESULTS: accounts-2
+#+begin_src python
+{
+    "Alice": {
+        "Cash": 50,
+        "15-Yr": -35,
+        "5-Yr": 0
+    },
+    "Bob": {
+        "Cash": 0,
+        "15-Yr": 35,
+        "5-Yr": -15
+    },
+    "Carol": {
+        "Cash": 0,
+        "15-Yr": 0,
+        "5-Yr": 15
+    }
+}
+#+end_src
+
+
+#+begin_src python :exports results :results drawer replace latex :noweb yes :var accounts=accounts-2
+<<format_accounts>>
+
+return format_accounts(json.loads(accounts))
 #+end_src
 
 #+RESULTS:
-| Cash           | $0.00   |
-| 15-Year LOC | $35.00  |
-| 5-Year LOC  | -$15.00 |
+#+begin_export latex
+\begin{center}
+\begin{tabular}{l c|c p{0.5ex} c|c p{0.5ex} c|c}
+ & \multicolumn{2}{c}{Alice}& &\multicolumn{2}{c}{Bob}& &\multicolumn{2}{c}{Carol} \\
+ & Debit & Credit & & Debit & Credit & & Debit & Credit \\
+\cline{2-3} \cline{5-6} \cline{8-9}
+Cash &  {\$50.00} &  & &  &  & &  &  \\
+15-Yr &  & {\$35.00}  & &  {\$35.00} &  & &  &  \\
+5-Yr &  &  & &  & {\$15.00}  & &  {\$15.00} &  \\
+\noalign{\vskip 0.5ex}
+\hhline{~==~==~==}
+\noalign{\vskip 0.5ex}
+ & \multicolumn{2}{c}{NAV: {{\$15.00}}} & & \multicolumn{2}{c}{NAV: {{\$20.00}}} & & \multicolumn{2}{c}{NAV: {{\$15.00}}} \\
+\end{tabular}
+\end{center}
+#+end_export
 
-After a year her balance would be:
+#+begin_src python :exports none :results code replace :noweb yes :var accounts=accounts-2
+<<format_accounts>>
+<<update_account>>
+ledger = json.loads(accounts)
+update_ledger(ledger, quarters = 5*4)
 
-#+begin_src python :exports results :results raw :noweb yes
-<<balance_15_5_year>>
-return balance_to_table(update(initial_balance_2, 4))
+return json.dumps(ledger, indent=4)
 #+end_src
 
 #+RESULTS:
-| Cash        | $1.02  |
-| 15-Year LOC | $25.75 |
-| 5-Year LOC  | -$5.97 |
+#+begin_src python
+{
+    "Alice": {
+        "Cash": 58.525147915651424,
+        "15-Yr": -7.540521415111592,
+        "5-Yr": 0.0
+    },
+    "Bob": {
+        "Cash": 4.219382237675546,
+        "15-Yr": 7.540521415111592,
+        "5-Yr": -0.14999999999999994
+    },
+    "Carol": {
+        "Cash": 1.069547971673135,
+        "15-Yr": 0.0,
+        "5-Yr": 0.14999999999999994
+    }
+}
+#+end_src
+
+#+HEADER: :exports none :results none
+#+RESULTS:
+
+After a year the account would be:
+
+#+begin_src python :exports results :results drawer replace latex :noweb yes :var accounts=accounts-2
+<<format_accounts>>
+<<update_account>>
+ledger = json.loads(accounts)
+update_ledger(ledger, quarters = 1)
+
+return format_accounts(ledger)
+#+end_src
+
+#+RESULTS:
+#+begin_export latex
+\begin{center}
+\begin{tabular}{l c|c p{0.5ex} c|c p{0.5ex} c|c}
+ & \multicolumn{2}{c}{Alice}& &\multicolumn{2}{c}{Bob}& &\multicolumn{2}{c}{Carol} \\
+ & Debit & Credit & & Debit & Credit & & Debit & Credit \\
+\cline{2-3} \cline{5-6} \cline{8-9}
+Cash &  {\$50.18} &  & &  {\$0.25} &  & &  {\$0.18} &  \\
+15-Yr &  & {\$32.41}  & &  {\$32.41} &  & &  &  \\
+5-Yr &  &  & &  & {\$11.91}  & &  {\$11.91} &  \\
+\noalign{\vskip 0.5ex}
+\hhline{~==~==~==}
+\noalign{\vskip 0.5ex}
+ & \multicolumn{2}{c}{NAV: {{\$17.77}}} & & \multicolumn{2}{c}{NAV: {{\$20.74}}} & & \multicolumn{2}{c}{NAV: {{\$12.10}}} \\
+\end{tabular}
+\end{center}
+#+end_export
 
 After 2.5 years:
 
-#+begin_src python :exports results :results raw :noweb yes
-<<balance_15_5_year>>
-return balance_to_table(update(initial_balance_2, 10))
+#+begin_src python :exports results :results drawer replace latex :noweb yes :var accounts=accounts-2
+<<format_accounts>>
+<<update_account>>
+ledger = json.loads(accounts)
+update_ledger(ledger, quarters = 6)
+
+return format_accounts(ledger)
 #+end_src
 
 #+RESULTS:
-| Cash        | $2.45  |
-| 15-Year LOC | $16.25 |
-| 5-Year LOC  | -$1.50 |
+#+begin_export latex
+\begin{center}
+\begin{tabular}{l c|c p{0.5ex} c|c p{0.5ex} c|c}
+ & \multicolumn{2}{c}{Alice}& &\multicolumn{2}{c}{Bob}& &\multicolumn{2}{c}{Carol} \\
+ & Debit & Credit & & Debit & Credit & & Debit & Credit \\
+\cline{2-3} \cline{5-6} \cline{8-9}
+Cash &  {\$51.58} &  & &  {\$1.52} &  & &  {\$0.70} &  \\
+15-Yr &  & {\$22.08}  & &  {\$22.08} &  & &  &  \\
+5-Yr &  &  & &  & {\$3.77}  & &  {\$3.77} &  \\
+\noalign{\vskip 0.5ex}
+\hhline{~==~==~==}
+\noalign{\vskip 0.5ex}
+ & \multicolumn{2}{c}{NAV: {{\$29.49}}} & & \multicolumn{2}{c}{NAV: {{\$19.84}}} & & \multicolumn{2}{c}{NAV: {{\$4.46}}} \\
+\end{tabular}
+\end{center}
+#+end_export
 
 And after 5 years:
 
-#+begin_src python :exports results :results raw :noweb yes
-<<balance_15_5_year>>
-return balance_to_table(update(initial_balance_2, 20))
+#+begin_src python :exports results :results drawer replace latex :noweb yes :var accounts=accounts-2
+<<format_accounts>>
+<<update_account>>
+ledger = json.loads(accounts)
+update_ledger(ledger, quarters = 4*5)
+
+return format_accounts(ledger)
 #+end_src
 
 #+RESULTS:
-| Cash           | $4.22  |
-| 15-Year LOC | $7.54  |
-| 5-Year LOC  | -$0.15 |
+#+begin_export latex
+\begin{center}
+\begin{tabular}{l c|c p{0.5ex} c|c p{0.5ex} c|c}
+ & \multicolumn{2}{c}{Alice}& &\multicolumn{2}{c}{Bob}& &\multicolumn{2}{c}{Carol} \\
+ & Debit & Credit & & Debit & Credit & & Debit & Credit \\
+\cline{2-3} \cline{5-6} \cline{8-9}
+Cash &  {\$58.53} &  & &  {\$4.22} &  & &  {\$1.07} &  \\
+15-Yr &  & {\$7.54}  & &  {\$7.54} &  & &  &  \\
+5-Yr &  &  & &  & {\$0.15}  & &  {\$0.15} &  \\
+\noalign{\vskip 0.5ex}
+\hhline{~==~==~==}
+\noalign{\vskip 0.5ex}
+ & \multicolumn{2}{c}{NAV: {{\$50.98}}} & & \multicolumn{2}{c}{NAV: {{\$11.61}}} & & \multicolumn{2}{c}{NAV: {{\$1.22}}} \\
+\end{tabular}
+\end{center}
+#+end_export
 
-* Balances Must Always Be Solvent
+* Accounts Must Always Be Solvent
 
-To prevent counter-party risk, all balances must be /solvent/ at all times. A
-balance is solvent when the sum of all the credit and debt is positive. For
-example, each balance in \S[[A Lending System]] is solvent. In fact,
-those balances will remain solvent for every quarter indefinitely. The interest
-rate could even be zero.
+To prevent counter-party risk, all accounts must be /solvent/ at all times. A
+account is solvent when its net asset value is non-negative. For example, each
+balance in \S[[A Lending System]] is solvent.
 
-Balances that are only temporarily solvent are not allowed. The following is an
-example of a solvent balance that is not allowed:
+Accounts that are only temporarily solvent are not permitted. The following is an
+example of a solvent balance the platform would disallow:
 
-#+begin_src python :exports results :results raw :noweb yes
-<<balance_15_5_year>>
-return balance_to_table(update(Balance(0, -35, 35), 0))
+#+NAME: temporarily-solvent-balance
+#+BEGIN_SRC python :exports none :results code replace
+import json
+
+accounts = {
+    "Temp Solvent": {"Cash": 0, "15-Yr": -35, "10-Yr": 35},
+}
+
+return json.dumps(accounts, indent=4)
+#+END_SRC
+
+#+RESULTS: temporarily-solvent-balance
+#+begin_src python
+{
+    "Temp Solvent": {
+        "Cash": 0,
+        "15-Yr": -35,
+        "10-Yr": 35
+    }
+}
+#+end_src
+
+#+begin_src python :exports results :results drawer replace latex :noweb yes :var accounts=temporarily-solvent-balance
+<<format_accounts>>
+
+return format_accounts(json.loads(accounts))
 #+end_src
 
 #+RESULTS:
-| Cash           | $0.00   |
-| 15-Year LOC | -$35.00 |
-| 5-Year LOC  | $35.00  |
+#+begin_export latex
+\begin{minipage}[t]{0.9\textwidth}
+  \centering
 
-The reason this balance is not allowed is because after a quarter it will be insolvent:
+\begin{tabular}{l c|c}
 
-#+begin_src python :exports results :results raw :noweb yes
-<<balance_15_5_year>>
-return balance_to_table(update(Balance(0, -35, 35), 1))
+\multicolumn{3}{c}{Temporarily Solvent Balance}\\
+\multicolumn{1}{c}{} & \multicolumn{1}{c}{Debit} & \multicolumn{1}{c}{Credit}\\
+\cline{2-3}
+
+ & & \\
+15-Yr & & \$35.00 \\
+10-Yr & \$35.00 & \\
+\end{tabular}
+
+\end{minipage}
+#+end_export
+
+The reason this balance is not allowed is because after a quarter it will be insolvent.  After one quarter the balance it will be:
+
+#+begin_src python :exports results :results drawer replace latex :noweb yes :var accounts=temporarily-solvent-balance
+<<format_accounts>>
+<<update_account>>
+ledger = json.loads(accounts)
+update_ledger(ledger)
+
+return format_accounts(ledger)
 #+end_src
 
 #+RESULTS:
-| Cash           | $0.00   |
-| 15-Year LOC | -$32.41 |
-| 5-Year LOC  | $27.80  |
+#+begin_export latex
+\begin{center}
+\begin{tabular}{l c|c}
+ & \multicolumn{2}{c}{Temp Solvent} \\
+ & Debit & Credit \\
+\cline{2-3}
+Cash & \$0.00 &  \\
+15-Yr &  & \$32.41  \\
+10-Yr &  \$31.19 &  \\
+\noalign{\vskip 0.5ex}
+\hhline{~==}
+\noalign{\vskip 0.5ex}
+ & \multicolumn{2}{c}{NAV: \$1.22} \\
+\end{tabular}
+\end{center}
+#+end_export
 
-The system must enforce can be or ever will be in an insolvent state.
-* Strictly Solvent Balances Will Always Be Solvent
+The system must enforce no one can or will ever be in an insolvent state.
 
-A balance is /strictly solvent/ when for all rates \(R\) the sum of the credit
-with rates slower than or equal to \(R\) is positive. For example, the following
-balance is strictly solvent:
+* Strictly Solvent Accounts Will Always Be Solvent
+
+Every account balance shown in \S[[A Lending System]] will remain solvent
+indefinitely. The interest rate could even be zero. This is because they have a
+special property. We say they are ``strictly solvent.''
+
+A balance is /strictly solvent/ when for all periods \(P\) the sum of the debit
+minus the credit is positive for periods equal to or longer than \(P\). We call
+such a sum a /partial NAV/. We write the partial NAV for periods 15 years or
+longer as ``15-Yr+ Nav'', periods 10 years or longer as ``10-Yr+ Nav'', etc.
+
+For example, the following account is strictly solvent:
 
 #+begin_src python :exports none :results none :noweb yes :noweb-ref balance_full
-from dataclasses import dataclass
+<<format_accounts>>
 
 
-@dataclass
-class Balance:
-    cash: float
-    fifteen_year: float
-    ten_year: float
-    five_year: float
-    one_year: float
+def get_acct_loan_types(account: Dict[str, float]) -> List[str]:
+    return get_loan_types({None: account})
 
 
-<<format_entry>>
-
-
-def balance_to_table(balance):
+def tabulate_partial_navs(account: Dict[str, float]) -> str:
     from tabulate import tabulate
 
-    return tabulate(
-        [
-            ["Cash", format_entry(balance.cash)],
-            ["15-Year", format_entry(balance.fifteen_year)],
-            ["10-Year", format_entry(balance.ten_year)],
-            ["5-Year", format_entry(balance.five_year)],
-            ["1-Year", format_entry(balance.one_year)],
-        ],
-        tablefmt="orgtbl",
-    )
-
-
-def partial_sum(balance: Balance, label: str) -> float:
-    total = 0
-    for k, v in balance.__dict__.items():
-        total += v
-        if k is label:
-            break
-    return total
-
-
-def partial_totals(balance: Balance) -> str:
-    from tabulate import tabulate
-
-    return tabulate(
-        [
-            ["15-Year+ Credit", format_entry(partial_sum(balance, "fifteen_year"))],
-            ["10-Year+ Credit", format_entry(partial_sum(balance, "ten_year"))],
-            ["5-Year+ Credit", format_entry(partial_sum(balance, "five_year"))],
-            ["Total Credit", format_entry(partial_sum(balance, "one_year"))],
-        ],
-        tablefmt="orgtbl",
-    )
-
-
-#quarterly_interest = 1.05 ** (1.0 / 4.0) - 1
-quarterly_interest = 0
-r_15 = 1 - 0.01 ** (1.0 / (15.0 * 4.0))
-r_10 = 1 - 0.01 ** (1.0 / (10.0 * 4.0))
-r_5 = 1 - 0.01 ** (1.0 / (5.0 * 4.0))
-r_1 = 1 - 0.01 ** (1.0 / (1.0 * 4.0))
-
-def update(balance, quarters=1):
-    import copy
-
-    balance = copy.deepcopy(balance)
-    for _ in range(quarters):
-        balance.cash += quarterly_interest * total_assets(balance)
-        balance.fifteen_year *= 1 - r_15
-        balance.ten_year *= 1 - r_15
-        balance.five_year *= 1 - r_5
-        balance.one_year *= 1 - r_1
-    return balance
-
-example_balance_full = Balance(10, -5, 4, -5, -3)
+    partial_sum = 0
+    result = []
+    for loan_type in get_acct_loan_types(account):
+        partial_sum += account[loan_type]
+        if loan_type != "Cash":
+            result.append([f"{loan_type}+ NAV", format_abs_no_escape(partial_sum)])
+    result[-1][0] = f"{result[-1][0]} (Total)"
+    return tabulate(result, tablefmt="orgtbl")
 #+end_src
 
-#+begin_src python :exports results :results raw :noweb yes
-<<balance_full>>
-return balance_to_table(example_balance_full)
+#+NAME: account-lots-of-rows
+#+BEGIN_SRC python :exports none :results code replace
+import json
+
+accounts = {
+    "":
+      {
+       "Cash": 10,
+       "15-Yr": -5,
+       "10-Yr": 4,
+       "5-Yr": -5,
+       "1-Yr": -3,
+      },
+}
+
+return json.dumps(accounts, indent=4)
+#+END_SRC
+
+#+RESULTS: account-lots-of-rows
+#+begin_src python
+{
+    "": {
+        "Cash": 10,
+        "15-Yr": -5,
+        "10-Yr": 4,
+        "5-Yr": -5,
+        "1-Yr": -3
+    }
+}
+#+end_src
+
+#+begin_src python :exports results :results drawer replace latex :noweb yes :var accounts=account-lots-of-rows
+<<format_accounts>>
+<<update_account>>
+
+i = 0
+accounts = json.loads(accounts)
+update_ledger(accounts, 0)
+return format_accounts(accounts)
 #+end_src
 
 #+RESULTS:
-| Cash    | $10.00 |
-| 15-Year | -$5.00 |
-| 10-Year | $4.00  |
-| 5-Year  | -$5.00 |
-| 1-Year  | -$3.00 |
+#+begin_export latex
+\begin{center}
+\begin{tabular}{l c|c}
+ & \multicolumn{2}{c}{} \\
+ & Debit & Credit \\
+\cline{2-3}
+Cash &  {\$10.00} &  \\
+15-Yr &  & {\$5.00}  \\
+10-Yr &  {\$4.00} &  \\
+5-Yr &  & {\$5.00}  \\
+1-Yr &  & {\$3.00}  \\
+\noalign{\vskip 0.5ex}
+\hhline{~==}
+\noalign{\vskip 0.5ex}
+ & \multicolumn{2}{c}{NAV: {{\$1.00}}} \\
+\end{tabular}
+\end{center}
+#+end_export
 
 This is because, for each rate, the sum of the credits for slower rates is:
 
-#+begin_src python :exports results :results raw :noweb yes
+#+begin_src python :exports results :results raw :noweb yes :var accounts=account-lots-of-rows
+<<update_account>>
 <<balance_full>>
-return partial_totals(example_balance_full)
+account = list(json.loads(accounts).values())[0]
+return tabulate_partial_navs(account)
 #+end_src
 
 #+RESULTS:
-| 15-Year+ Credit | $5.00 |
-| 10-Year+ Credit | $9.00 |
-| 5-Year+ Credit  | $4.00 |
-| Total Credit    | $1.00 |
+| 15-Yr+ NAV        | $5.00 |
+| 10-Yr+ NAV        | $9.00 |
+| 5-Yr+ NAV         | $4.00 |
+| 1-Yr+ NAV (Total) | $1.00 |
 
-A balance which is strictly solvent will always be solvent[fn:1]. Informally, this is because the
-debt at faster rates will go away faster than credit at slower rates. In fact,
-if there is no interest then all of the partial credit sums eventually converge
-to $10 in this example. Figure [[fig:partial-sums-of-credit]] shows the partial
-credit sums over time for the example balance.
+A balance which is strictly solvent will always be solvent[fn:see-proof].
+Informally, this is because the debt at shorter periods will always go
+away faster than credited loans for longer periods. In fact, if there
+is no interest then all of the partial net asset value sums will
+eventually converge to $10 in this example. Figure
+[[fig:partial-sums-of-credit]] shows the partial net asset values over
+time for the example account provided in this section.
 
-[fn:1] See Appendix [[Strictly Solvent Balances Are Always Solvent (Proof)]] for a proof of this claim.
-
-#+begin_src python :exports results :noweb yes :results file
+#+begin_src python :exports results :noweb yes :results file :var accounts=account-lots-of-rows
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
 import numpy as np
+from typing import Dict
+from collections.abc import Iterator
+
+<<balance_full>>
+<<update_account>>
+
 
 file_name = "partial_sums_of_credit.svg"
 
-<<balance_full>>
+# Set interest to 0
+i = 0
 
 
-def partial_sums(balance: Balance):
-    keys = iter(balance.__dict__.keys())
-    next(keys)
-    for this_key in keys:
-
-        total = 0
-        for other_key, value in balance.__dict__.items():
-            total += value
-            if other_key is this_key:
-                break
-        yield total
+def partial_navs(account: Dict[str, float]) -> Iterator[float]:
+    total = 0
+    for loan_type in get_acct_loan_types(account):
+        total += account[loan_type]
+        if loan_type != "Cash":
+            yield total
 
 
-def balance_time_series(balance: Balance, quarters: int):
+def update_account_(account: Dict[str, float], quarters: int) -> Dict[str, float]:
+    import copy
+
+    account = copy.deepcopy(account)
+    update_account(account, quarters)
+    return account
+
+
+def balance_time_series(account: Dict[str, float], quarters: int):
     return list(
         map(
             list,
-            zip(*[list(partial_sums(update(balance, q))) for q in range(quarters)]),
+            zip(
+                ,*[
+                    list(partial_navs(update_account_(account, q)))
+                    for q in range(quarters)
+                ]
+            ),
         )
     )
 
@@ -653,45 +970,55 @@ plt.rcParams["mathtext.fontset"] = "dejavuserif"
 fig = plt.figure()
 ax = fig.add_subplot(1, 1, 1)
 
+example_balance_full = list(json.loads(accounts).values())[0]
 series = balance_time_series(example_balance_full, 4 * 15)
-(l1,) = ax.plot(series[0], '--', marker=".", color="blue", linewidth = 1)
-(l2,) = ax.plot(series[1], '--', marker="^", color="red", linewidth = 1)
-(l3,) = ax.plot(series[2], '--', marker="s", color="purple", linewidth = 1)
-(l4,) = ax.plot(series[3], '--', marker="D", color="green", linewidth = 1)
-(l0,) = ax.plot([example_balance_full.cash for _ in series[0]], '--', color="black", linewidth = 1)
+(l1,) = ax.plot(series[0], "--", marker=".", color="blue", linewidth=1)
+(l2,) = ax.plot(series[1], "--", marker="^", color="red", linewidth=1)
+(l3,) = ax.plot(series[2], "--", marker="s", color="purple", linewidth=1)
+(l4,) = ax.plot(series[3], "--", marker="D", color="green", linewidth=1)
+(l0,) = ax.plot(
+    [example_balance_full["Cash"] for _ in series[0]], "--", color="black", linewidth=1
+)
 ax.grid(True)
-ax.set(xlabel="Quarters Passed", ylabel="Total Credit ($\$$)")
+ax.set(xlabel="Quarters Passed", ylabel="Partial NAV ($\$$)")
 ax.legend(
     (l0, l1, l2, l3, l4),
-    ("Cash", "15-Year+ Credit", "10-Year+ Credit", "5-Year+ Credit", "Total Credit"),
+    ("Cash", "15-Yr+ NAV", "10-Yr+ NAV", "5-Yr+ NAV", "1-Yr+ NAV (Total)"),
     loc="lower right",
     shadow=False,
 )
 fig.savefig(file_name)
+
 return file_name
 #+end_src
 
-#+CAPTION: Partial credit totals over time in the example /strictly solvent/ balance. The model ignores interest. As all the credit and debt goes away, the partial credit totals converge to the $10 cash reserve in the example. The $10 cash reserve is the black dotted line.
-#+LABEL: fig:partial-sums-of-credit
+#+CAPTION: Partial net asset values over time in the example /strictly solvent/ balance. The model ignores interest. As all the credit and debt goes away, the partial net asset values converge to the initial $10 cash reserve. The $10 cash reserve is the black dotted line.
+#+NAME: fig:partial-sums-of-credit
 #+RESULTS:
 [[file:partial_sums_of_credit.svg]]
 
-Checking if a balance is strictly solvent is simple. A blockchain can check if a
-balance is strictly solvent in an efficient manner. All it needs to do is check
-if all the partial sums of credit are solvent. Not every balance which is
-forever solvent follows this rule. Appendix [[Example of a Forever Solvent Balance which is not Strictly Solvent]] presents such a balance that is forever solvent but
-not strictly solvent.
+Checking if a balance is strictly solvent is simple. A blockchain can
+check if a balance is strictly solvent in an efficient manner. All it
+needs to do is check if all the partial sums of credit are solvent.
+Not every balance which is forever solvent follows this rule. Appendix
+[[Example of a Forever Solvent Balance Which Is Not Strictly Solvent]]
+presents such a balance that is forever solvent but not strictly
+solvent.
+
+[fn:see-proof] See Appendix [[Strictly Solvent Accounts Will Always Be Solvent (Proof)]] for a proof of this claim.
 
 * Forever Solvent Balances are Transferable
+#+begin_comment
+TODO: Rewrite me
 
-If an account can afford to, it can transfer a balance if that balance will
-always be solvent. To afford a transfer an account must remain forever solvent
-afterwards. This way the rule that all balances must be always be solvent remains
-true.
+If an account can afford to, it can transfer a balance if that balance
+will always be solvent. A transferable balance has exactly the same
+representation as an account. To afford a transfer an account
+must remain forever solvent afterwards. This way the rule that all
+accounts must be always be solvent remains true.
 
-Cash and credit are examples of transferable balances. Transferring credit is
-the same as giving out a loan. To see this, suppose that Bob has the following
-starting balance:
+Cash and credited loans are examples of transferable balances. To see
+this, suppose that Bob has the following starting balance:
 
 #+begin_src python :exports results :results raw :noweb yes
 <<balance_15_year>>
@@ -699,7 +1026,7 @@ return balance_to_table(Balance(35, 0))
 #+end_src
 
 #+RESULTS:
-| Cash           | $30.00 |
+| Cash        | $30.00 |
 | 15-Year LOC | $0.00  |
 
 If Bob transfers $10 worth of 15-year credit to Alice, his balance will be:
@@ -710,7 +1037,7 @@ return balance_to_table(Balance(35, -10))
 #+end_src
 
 #+RESULTS:
-| Cash           | $30.00  |
+| Cash        | $30.00  |
 | 15-Year LOC | -$10.00 |
 
 An account can only transfer cash less than the total it posses. Otherwise,
@@ -730,6 +1057,7 @@ is not a problem because Alice will still be solvent for all times in the
 future. Even though Bob sent 10-ear debt to Alice, he also sent 15-year credit.
 The 15-year credit he sent is more valuable. The balance Bob sent to Alice will
 be a net positive in credit after a quarter.
+#+end_comment
 
 * Models For Exchange Rates For Lent Capital
 ** Basic Long-Term Compound Interest Model
@@ -741,44 +1069,49 @@ interest dominates the seed cash the account started off with. One may use limit
 compound interest to find exchange rates. A way to do this is to look at the
 ratio of those limits.
 
-The compounded interest for credit with a particular rate has a closed from.
-Assume a quarterly interest rate of \(i\). Furthermore, assume the system
-returns a fraction \(r\) of the credit every quarter. Starting with $1 of
-credit, the amount of interest after 1 quarter is:
+The compounded interest for credit with a particular rate has a closed
+from. Assume a quarterly interest rate of \(i\). Furthermore, assume
+the system returns a fraction \(\rho\) of the credit every quarter.
+Starting with $1 of credit, the amount of interest after 1 quarter is:
 
 \[
-\varphi_r(1) = i
+\varphi_\rho(1) = i
 \]
 
-After \(n\) quarters the amount of accrued compound interest obeys the recurrence:
+After \(n\) quarters the amount of accrued compound interest obeys the
+recurrence: \[ \varphi_\rho(n) = i (1 - \rho)^{n - 1} + (1 + i)
+\varphi_\rho(n-1) \]
 
-\[
-\varphi_r(n) = i (1 - r)^{n - 1} + (1 + i) \varphi(n-1)
-\]
-
-The reason this expression includes a \(i (1-r)^{n-1}\) term is as follows.  After each quarter the system returns a fraction \(r\) of the remaining credit.  In the next quarter what remains accrues interest. After \(n\) quarters the interest on the remaining credit is \(i (1-r)^{n-1}\). The \((1+i)\varphi(n-1)\) term comes from the compound interest from the previous quarter.
+The reason this expression includes a \(i (1-\rho)^{n-1}\) term is as
+follows. After each quarter the system returns a fraction \(\rho\) of
+the remaining credit. In the next quarter what remains accrues
+interest. After \(n\) quarters the interest on the remaining credit is
+\(i (1-\rho)^{n-1}\). The \((1+i)\varphi_\rho(n-1)\) term comes from the
+compound interest from the previous period.
 
 The closed form for this recurrence is:
 
-\begin{align*}
-\varphi_r(n)
-   & = \sum _{k=0}^{n-1} i (1-r)^k (i+1)^{n-k}\\
-   & = \frac{i (i+1) \left((i+1)^n-(1-r)^n\right)}{i+r}
-\end{align*}
+\begin{align}
+\varphi_\rho(n)
+    & = \sum _{k=0}^{n-1} i  (1+i)^{n-k-1} (1-\rho )^k \notag \\
+    & = \frac{i \left((1+i)^n-(1-\rho)^n\right)}{i+\rho}  \label{eqn:interest-closed-form}
+\end{align}
 
-The limiting ratio of compound interest for two rates expresses a conversion
-rate. For rates \(r_1\) and \(r_2\) this limit has the closed form:
+The limiting ratio of compound interest for two rates expresses an
+exchange rate. For rates \(\rho_1\) and \(\rho_2\) this limit has the
+closed form:
 
-\[
-\lim_{n \to \infty} \frac{\varphi_{r_1}(n)}{\varphi_{r_2}(n)} = \frac{i+r_2}{i+r_1}
-\]
+\begin{equation}
+\lim_{n \to \infty} \frac{\varphi_{\rho_1}(n)}{\varphi_{\rho_2}(n)} = \frac{i+\rho_2}{i+\rho_1} \notag \label{eqn:basic-exchange-rate}
+\end{equation}
 
-For cash the rate \(r\) is 0.  Table [[table:basic-model-conversion-rates]] provides exchange rates using this closed form:
+For cash the rate \(r\) is 0. Table [[table:basic-model-conversion-rates]]
+provides exchange rates using this closed form.
 
-#+begin_src python :exports results :results raw :noweb yes
+#+begin_src python :exports results :results raw replace :noweb yes
 from tabulate import tabulate
 
-<<format_entry>>
+<<format_accounts>>
 
 i = 1.05 ** (1.0 / 4.0) - 1
 r_15 = 1 - 0.01 ** (1.0 / (15.0 * 4.0))
@@ -789,43 +1122,91 @@ r_1 = 1 - 0.01 ** (1.0 / (4.0))
 
 return tabulate(
     [
-        [f"$1 Cash", "\(\\approx\)", f"{format_entry((i + r_15)/i)} 15-Year LOCs"],
-        [f"$1 Cash", "\(\\approx\)", f"{format_entry((i + r_10)/i)} 10-Year LOCs"],
-        [f"$1 Cash", "\(\\approx\)", f"{format_entry((i + r_5)/i)} 5-Year LOCs"],
-        [f"$1 Cash", "\(\\approx\)", f"{format_entry((i + r_2)/i)} 2-Year LOCs"],
-        [f"$1 Cash", "\(\\approx\)", f"{format_entry((i + r_1)/i)} 1-Year LOCs"],
+        [
+            f"$1 Cash",
+            "\(\\approx\)",
+            f"{format_abs_no_escape((i + r_15)/i)} 15-Yr",
+        ],
+        [
+            f"$1 Cash",
+            "\(\\approx\)",
+            f"{format_abs_no_escape((i + r_10)/i)} 10-Yr",
+        ],
+        [
+            f"$1 Cash",
+            "\(\\approx\)",
+            f"{format_abs_no_escape((i + r_5)/i)} 5-Yr",
+        ],
+        [
+            f"$1 Cash",
+            "\(\\approx\)",
+            f"{format_abs_no_escape((i + r_2)/i)} 2-Yr",
+        ],
+        [
+            f"$1 Cash",
+            "\(\\approx\)",
+            f"{format_abs_no_escape((i + r_1)/i)} 1-Yr",
+        ],
     ],
     tablefmt="orgtbl",
 )
 #+end_src
 
 #+CAPTION: Conversion rates for cash to credit using the basic long-term compound interest model. The table assumes a 5% APY with balances updated quarterly.
-#+LABEL: table:basic-model-conversion-rates
+#+NAME: table:basic-model-conversion-rates
 #+RESULTS:
-| $1 Cash | \(\approx\) | $7.02 15-Year LOCs |
-| $1 Cash | \(\approx\) | $9.86 10-Year LOCs |
-| $1 Cash | \(\approx\) | $17.76 5-Year LOCs |
-| $1 Cash | \(\approx\) | $36.66 2-Year LOCs |
-| $1 Cash | \(\approx\) | $56.72 1-Year LOCs |
+| $1 Cash | \(\approx\) | $7.02 15-Yr |
+| $1 Cash | \(\approx\) | $9.86 10-Yr |
+| $1 Cash | \(\approx\) | $17.76 5-Yr |
+| $1 Cash | \(\approx\) | $36.66 2-Yr |
+| $1 Cash | \(\approx\) | $56.72 1-Yr |
+
+#+BEGIN_COMMENT
+A closed form for returns of continuously updated loans also exists. This
+equation may be an appropriate approximation when accounts are
+frequently updated. Using \eqref{eqn:interest-closed-form} it is
+possible to effectively update accounts every millisecond. We
+implement a system which leverages the closed form in
+\eqref{eqn:interest-closed-form} in Appendix [[Prototype Implementation In
+Rust]].
+
+The closed form for a continuously updated loan is as follows:
+
+\begin{align*}
+\hat{\varphi}_\rho(n)
+  & = \int_0^n i (1-\rho)^k(1+i)^{n-k}  \, dk \\
+  & = \frac{i \left((1+i)^n-(1-\rho)^n\right)}{\ln (1+i)-\ln (1-\rho)}
+\end{align*}
+
+This yields a similar exchange rate formula as \eqref{eqn:basic-exchange-rate}.
+
+\[
+\lim_{n \to \infty} \frac{\hat\varphi_{\rho_1}(n)}{\hat\varphi_{\rho_2}(n)} = \frac{\ln (1+i)-\ln (1-\rho_2)}{\ln (1+i)-\ln (1-\rho_1)}
+\]
+
+Since \(\ln (1+x) \approx x\) when \(x\) is small, we can see that the
+above equation approximates \eqref{eqn:basic-exchange-rate} when
+\(i\), \(\rho_1\), and \(\rho_2\) are small.
+#+END_COMMENT
 
 ** Long-Term Compound Interest With Discounted Cash Flow
 
 A way to extend the long-term interest model is to incorporate /Discounted Cash
 Flow/ (DCF). Valuation using DCF captures the diminishing utility of money. Let
-\(d\) denote the discount rate. As before, let \(i\) denote the interest rate
+\(r\) denote the discount rate. As before, let \(i\) denote the interest rate
 and \(r\) denote the credit return rate. The following recurrence computes the
 DCF long-term compound interest for $1 of credit:
 
 \begin{align*}
-\psi_r(1) & = i \\
-\psi_r(n) & = {\frac{i}{(1+d)^{1-n}}} (1-r)^{n-1}+\left(1 + \frac{i}{(1+d)^{1-n}}\right)\psi_r(n-1)
+\psi_\rho(1) & = i \\
+\psi_\rho(n) & = {\frac{i}{(1+r)^{n-1}}} (1-\rho)^{n-1}+\left(1 + \frac{i}{(1+r)^{n-1}}\right)\psi_{\rho}(n-1)
 \end{align*}
 
-Let \(F=1/(1+d)\). The recurrence for \(\psi_r(n)\) has the following equivalent expression:
+Let \(F=1/(1+r)\). The recurrence for \(\psi_\rho(n)\) has the following equivalent expression:
 
 \begin{align*}
-\psi_r(n) & = \sum _{k=0}^{n-1} \left(i F^k \left(\prod _{j=k+1}^{n-1} \left(i F^j+1\right)\right)(1-r)^k \right) \\
-& = \sum _{k=0}^{n-1} i F^k \left(-i F^{k+1};F\right)_{n-k-1} (1-r)^k 
+\psi_\rho(n) & =
+\sum _{k=0}^{n-1} \left(-\frac{1}{i};1+r\right)_{n-k-1} \left(  (1+r)^{\frac{1}{2} ((k-1) k+(n-1) n)} i^{n-k} (1-\rho )^k\right)
 \end{align*}
 
 The summation above uses the /\(q\)-Pochhammer/ symbol \((a;q)_n =
@@ -840,43 +1221,66 @@ from tabulate import tabulate
 <<format_entry>>
 
 i = 1.05 ** (1.0 / 4.0) - 1
+r_15 = 1 - 0.01 ** (1.0 / (15.0 * 4.0))
+r_10 = 1 - 0.01 ** (1.0 / (10.0 * 4.0))
+r_5 = 1 - 0.01 ** (1.0 / (5.0 * 4.0))
+r_2 = 1 - 0.01 ** (1.0 / (2.0 * 4.0))
+r_1 = 1 - 0.01 ** (1.0 / (4.0))
 
 
 def q_pochhammer(a: float, q: float, n: int) -> float:
     from math import prod
 
-    return prod(1 - a * q ** k for k in range(0, n))
+    return prod(1 - a * q**k for k in range(0, n))
 
-def psi(i: float, d: float, r: float, n: int) -> float:
-    F = 1.0 / (1 + d)
-    return sum(i * F ** k * q_pochhammer())
+
+def psi(i: float, r: float, rho: float, n: int) -> float:
+    return sum(
+        q_pochhammer(-1 / i, 1 + r, n - k - 1)
+        ,* (1 + r) ** (1 / 2.0 * ((k - 1) * k + (n - 1) * n))
+        ,* i ** (n - k)
+        ,* (1 - rho) ** k
+        for k in range(0, n)
+    )
+
+def phi(i: float, rho: float, n: int) -> float:
+    return i*((1+i)**n - (1 - rho)**n) / (i + rho)
 #+end_src
 
 #+begin_src python :exports none :results value :noweb yes
 <<dcf>>
-return q_pochhammer(2,3,4)
+return psi(i, 0.001, r_15, 7) / psi(i, 0.001, r_1, 7)
 #+end_src
 
 #+RESULTS:
-: 4505
+: 3.7343761178774324
+
+#+begin_src python :exports none :results value :noweb yes
+<<dcf>>
+return phi(i, r_15, 7) / phi(i, r_1, 7)
+#+end_src
+
+#+RESULTS:
+: 3.7456030268042624
+
 
 #+begin_src bibtex :exports none :tangle "./risk-free-lending-refs.bib"
 @incollection{berndt_what_2012,
-	address = {Somerville, Mass},
-	series = {Lecture notes series / {Ramanujan} {Mathematical} {Society}},
-	title = {What is a $q$-series?},
-	isbn = {978-1-57146-245-9},
-	url = {https://faculty.math.illinois.edu/~berndt/articles/q.pdf},
-	language = {eng},
-	number = {14},
-	booktitle = {Ramanujan rediscovered: proceedings of a {Conference} on {Elliptic} {Functions}, {Partitions}, and $q$-{Series} in memory of {K}. {Venkatachaliengar}, {Bangalore}, {June} 2009},
-	publisher = {International Press},
-	author = {Berndt, Bruce C.},
-	editor = {Berndt, Bruce C. and Venkatachaliengar, K. and Cooper, Shaun and Deka, Nayandeep and Huber, Tim and Schlosser, Michael},
-	year = {2012},
-	note = {Meeting Name: Conference on Elliptic Functions, Partitions, and Q-Series},
-	pages = {31--51},
-	annote = {Literaturangaben},
+  address = {Somerville, Mass},
+  series = {Lecture notes series / {Ramanujan} {Mathematical} {Society}},
+  title = {What is a $q$-series?},
+  isbn = {978-1-57146-245-9},
+  url = {https://faculty.math.illinois.edu/~berndt/articles/q.pdf},
+  language = {eng},
+  number = {14},
+  booktitle = {Ramanujan rediscovered: proceedings of a {Conference} on {Elliptic} {Functions}, {Partitions}, and $q$-{Series} in memory of {K}. {Venkatachaliengar}, {Bangalore}, {June} 2009},
+  publisher = {International Press},
+  author = {Berndt, Bruce C.},
+  editor = {Berndt, Bruce C. and Venkatachaliengar, K. and Cooper, Shaun and Deka, Nayandeep and Huber, Tim and Schlosser, Michael},
+  year = {2012},
+  note = {Meeting Name: Conference on Elliptic Functions, Partitions, and Q-Series},
+  pages = {31--51},
+  annote = {Literaturangaben},
 }
 #+end_src
 
@@ -889,13 +1293,621 @@ return q_pochhammer(2,3,4)
   #+LaTeX: \printbibliography[heading=none]
 
 #+LaTeX: \appendix
-* Strictly Solvent Balances Are Always Solvent (Proof)
+
+#+LaTeX: \clearpage
+
+* Strictly Solvent Accounts Will Always Be Solvent (Proof)
+
+In this section we prove that strictly solvent accounts will always be
+strictly solvent. Since strictly solvent accounts are solvent, this
+justifies the claim in \S[[Strictly Solvent Accounts Will Always Be
+Solvent]].
+
+The informal argument for this fact is simple. In strictly solvent
+account, all outstanding credited debt goes away faster than all
+debited loans at longer periods.
+
+An abstract model for an account is a function \(\alpha : \mathbb{N}
+\to \mathbb{R}\) with finite support[fn::i.e., the set \(\{n \in
+\mathbb{N}\; : \; \alpha(n) \neq 0\}\) is finite.]. Each natural
+number index represents a successively shorter loan period. The index
+0 represents the cash reserve in the balance.
+
+As a worked example, consider the account:
+
+#+NAME: alpha-account
+#+BEGIN_SRC python :exports none :results code replace
+import json
+
+accounts = {
+    "":
+      {
+       "Cash": 10,
+       "15-Yr": 9,
+       "10-Yr": -3,
+       "5-Yr": -5,
+       "1-Yr": 7,
+      },
+}
+
+return json.dumps(accounts, indent=4)
+#+END_SRC
+
+#+RESULTS: alpha-account
+#+BEGIN_SRC python
+{
+    "": {
+        "Cash": 10,
+        "15-Yr": 9,
+        "10-Yr": -3,
+        "5-Yr": -5,
+        "1-Yr": 7
+    }
+}
+#+end_src
+
+#+BEGIN_SRC python :exports results :results drawer replace latex :noweb yes :var accounts=alpha-account
+<<format_accounts>>
+
+accounts = json.loads(accounts)
+return format_accounts(accounts)
+#+end_src
+
+#+RESULTS:
+#+begin_export latex
+\begin{center}
+\begin{tabular}{l c|c}
+ & \multicolumn{2}{c}{} \\
+ & Debit & Credit \\
+\cline{2-3}
+Cash &  {\$10.00} &  \\
+15-Yr &  {\$9.00} &  \\
+10-Yr &  & {\$3.00}  \\
+5-Yr &  & {\$5.00}  \\
+1-Yr &  {\$7.00} &  \\
+\noalign{\vskip 0.5ex}
+\hhline{~==}
+\noalign{\vskip 0.5ex}
+ & \multicolumn{2}{c}{NAV: {{\$18.00}}} \\
+\end{tabular}
+\end{center}
+#+end_export
+
+We represent this account as a function as follows:
+
+#+begin_src python :exports results :results drawer replace latex :var accounts=alpha-account
+import json
+
+accounts = json.loads(accounts)
+
+start = "\\begin{align*}"
+lhs = "\\alpha(n) &"
+cases_start = "\\begin{cases}"
+cases = " \\\\\n".join(
+    f"{value} & n = {idx}" for (idx, value) in enumerate(list(accounts.values())[0].values())
+) + " \\\\"
+catch_all_case = "0 & \\text{otherwise}"
+cases_end = "\\end{cases}"
+end = "\\end{align*}"
+return "\n".join([start, lhs, cases_start, cases, catch_all_case, cases_end, end])
+#+end_src
+
+#+RESULTS:
+#+begin_export latex
+\begin{align*}
+\alpha(n) &
+\begin{cases}
+10 & n = 0 \\
+9 & n = 1 \\
+-3 & n = 2 \\
+-5 & n = 3 \\
+7 & n = 4 \\
+0 & \text{otherwise}
+\end{cases}
+\end{align*}
+#+end_export
+
+We express the \(n\)th /partial NAV/, as introduced in \S[[Strictly Solvent Accounts Will Always Be Solvent]], using the summation:
+
+\[
+\sum_{k=0}^n \alpha(n)
+\]
+
+An account is /strictly solvent/ if and only if \(0 \leq \sum_{k=0}^n\alpha(n)\) for all \(n\). We say an account is /solvent/ when \(0 \leq \sum_{k=0}^\infty \alpha(n)\).  An account that is /strictly solvent/ is always /solvent/, because we assume that \(\alpha\) has finite support.
+
+We assume the existence of a /loan return rate/ function \(\rho: \mathbb{N} \to [0,1)\) such that \(\rho(0)=0\) and if \(n \leq m \) then \(\rho(n) \leq \rho(m)\).
+
+We further assume an /interest rate/ \(i \in [0,1)\).
+
+Given a loan return rate function \(\rho\) and interest rate \(i\), we define the /updated/ account \(\uparrow\alpha\) as:
+
+\begin{equation*}
+\uparrow \alpha (n) =
+  \begin{cases}
+  \alpha(0) +  i \sum_{k=0}^\infty \alpha(k) & n = 0 \\
+  (1 - \rho(n))\;\alpha(n) & \text{otherwise}
+  \end{cases}
+\end{equation*}
+
+Provided these definitions, we have the following theorem:
+
+#+begin_theorem
+If \(\alpha\) is strictly solvent then \(\uparrow \alpha\) is strictly solvent.
+#+end_theorem
+#+begin_proof
+We first argue it suffices to prove \(\alpha_\rho(n) = (1 - \rho(n))\;\alpha(n)\) is strictly solvent.  To see this, first observe that \(0 \leq \sum_{k=0}^\infty \alpha(k)\). This is because \(\sum_{k=0}^\infty \alpha(k) = \sum_{k=0}^b \alpha(k)\) where[fn:: here we know \(b\) is well-defined because \(\alpha\) has finite support] \(b = \max\; \{n \in \mathbb{N}\;:\; \alpha(n) \neq 0\}\), and \(0 \leq \sum_{k=0}^n \alpha(k)\) for all \(n\) (by \(\alpha\) being strictly solvent).  Since \(0\leq i\) and \(0 \leq \sum_{k=0}^\infty \alpha(k)\), then \(0 \leq i \sum_{k=0}^\infty \alpha(k)\) . This means that if \(\alpha_\rho(n)\) is strictly solvent, or in other words \(0 \leq \sum_{k=0}^n (1 - \rho(k))\alpha(k) \) for all \(n\), then \(0 \leq i \sum_{k=0}^\infty \alpha(k) + \sum_{k=0}^n (1 - \rho(k))\;\alpha(k) \) for all \(n\).  But this is equivalent to saying \(\uparrow \alpha\) is strictly solvent since \(\rho (0) = 0\).
+
+To prove \(\alpha_\rho(n)\) is strictly solvent, first observe that for every \(n\) and \(m\) such that \(n \leq m\) then \((1 - \rho(n))\sum_{k=0}^m \alpha(k) \leq \sum_{k=0}^m (1- \rho(k))\;\alpha(k) \). This follows by induction on \(m\), and from our assumptions that \(\rho\)'s range is \([0,1)\) and that \(\rho\) is monotonically increasing. But it also follows that \(0\leq 1 - \rho(n)\), and since we assume \(0 \leq \sum_{k=0}^m \alpha(k)\) for all \(m\), then  \(0 \leq (1 - \rho(n))\sum_{k=0}^m \alpha(k)\) . It follows that \(0 \leq \sum_{k=0}^m (1- \rho(k))\;\alpha(k)\) by transitivity, hence \(\alpha_\rho\) is strictly solvent which suffices the hypothesis.
+#+end_proof
+
 * The DCF Exchange Rate Is Closer to 1 to 1 Than Without Discounting (Proof)
-* Example of a Forever Solvent Balance which is not Strictly Solvent
+* Example of a Forever Solvent Balance Which Is Not Strictly Solvent
+* Toy Python Implementation
+
+#+NAME: net-asset-value-listing
+#+CAPTION: An implementation of the risk-free lending account update system in python, following the JSON/python dictionary account data structure format used in Listing [[accounts-1-listing]].
+#+begin_src python :exports code :results none :noweb yes
+<<update_account>>
+#+end_src
+
 * Prototype Implementation In Rust
 
+In this section we provide a /literate code/ prototype implementation
+of the risk-free lending protocol in the rust programming language.
+
+The system presented has a fixed interest rate of 10.8% APY.
+
+This prototype effectively updates accounts every millisecond. The system achieves this by /lazily/ distributing interest and returning loans. We show how to collapse millions of updates into a single calculation. We do this by using fixed interest and the closed form in equation \eqref{eqn:interest-closed-form} from \S[[Basic Long-Term Compound Interest Model]].
+
+Our rust representation of an account is similar to the data structure from Listing [[accounts-1-listing]].
+
+#+NAME: rust:account-struct
+#+BEGIN_SRC rust :exports code
+#[derive(Clone, Copy)]
+struct AccountAssets {
+    // Cash balance of the account
+    cash: u64,
+
+    // Credited and debited loans
+    yr15: i64,
+    yr10: i64,
+    yr5: i64,
+    yr2: i64,
+    yr1: i64,
+    month6: i64,
+    month3: i64,
+    month1: i64,
+    week2: i64,
+    week1: i64,
+    day3: i64,
+    day1: i64,
+}
+
+#[derive(Clone)]
+struct Account {
+    // Timestamp units are milliseconds since January 1, 1970
+    timestamp: u64,
+
+    // Assets belonging to account as of the timestamp
+    assets: AccountAssets
+}
+#+END_SRC
+
+Note that loan amounts =yr15=, =yr10=, etc. are /signed/, while =cash=
+is /unsigned/. This reflects that loans may be /credited/ or
+/debited/, while cash may only be /debited/.
+
+The =yr15= field denotes 15 year loans, =yr10= denotes 10 year loans, etc.
+
+In a blockchain setting, =day1= loans may be suitable for transaction
+payments. Rather than pay 2¢, users could instead elect to lend out
+\(\approx\) $200 for 24 hours instead. The latter yields roughly the
+same in interest.
+
+The following constants capture the different fractions \(\rho\)
+returned each millisecond for each of the loans. We use the =fixed=
+crate[fn:: https://docs.rs/fixed/latest/fixed/] for fixed-point
+arithmetic. We need to use fixed-point arithmetic to ensure
+calculations are deterministic (as we are assuming a blockchain
+setting). We use the signed fixed point type =I64F64= for our
+calculations. This type has 128 bits -- 64 fractional bits and 64
+integer bits. Because it has 64 fractional bits, it can model
+increments as small as \(\Delta = 2^{-64}\) in size, or roughly 21
+decimal places.
+
+#+NAME: rust:loan-return-fractions
+#+BEGIN_SRC rust :crates '((fixed . 1.17) (fixed-macro . 1.1)) :exports code
+use fixed::types::I64F64;
+use fixed_macro::fixed;
+
+const RHO_YR15: I64F64 = fixed!(9.73526590978706893683e-12: I64F64);
+const RHO_YR10: I64F64 = fixed!(1.46028988646450626294e-11: I64F64);
+const RHO_YR5: I64F64 = fixed!(2.92057977290768806035e-11: I64F64);
+const RHO_YR2: I64F64 = fixed!(7.30144943210928665943e-11: I64F64);
+const RHO_YR1: I64F64 = fixed!(1.46028988636854616808e-10: I64F64);
+const RHO_MONTH6: I64F64 = fixed!(2.92057977252384768093e-10: I64F64);
+const RHO_MONTH3: I64F64 = fixed!(5.84115954419471674109e-10: I64F64);
+const RHO_MONTH1: I64F64 = fixed!(1.77668602696648171536e-9: I64F64);
+const RHO_WEEK2: I64F64 = fixed!(3.80718433963436297598e-9: I64F64);
+const RHO_WEEK1: I64F64 = fixed!(7.61436866477407335601e-9: I64F64);
+const RHO_DAY3: I64F64 = fixed!(1.77668601276172220977e-8: I64F64);
+const RHO_DAY1: I64F64 = fixed!(5.33005794358677155186e-8: I64F64);
+
+const INTEREST_RATE: I64F64 = fixed!(3.33426278106998549852e-12: I64F64);
+#+END_SRC
+
+#+RESULTS: rust:loan-return-fractions
+
+Note the following regarding the constant calculations above:
+
+ - We compute =RHO_YR15= by evaluating
+   \(1-\left(\frac{1}{100}\right)^{1/(15\times 365\times 24 \times 60
+   \times 60 \times 1000)}\) to 21 decimal places. The other constants
+   are similarly calculated.
+
+ - We compute =INTEREST_RATE= by evaluating
+   \(\left(\frac{1108}{1000}\right)^{1/(365\times 24 \times 60 \times
+   60 \times 1000)}-1\) to 21 decimal places in a similar fashion to
+   =RHO_YR15=. This corresponds to a 10.8% APY.
+
+We next show how to compute interest as a bulk operation across
+a potentially large numbers of updates. Consider a $1 loan where
+\(\rho\) is the fraction of that loan returned every update. Recall
+equation \eqref{eqn:interest-closed-form} in \S[[Basic Long-Term
+Compound Interest Model]] we have. After \(n\) updates, the interest
+yielded for the loan is:
+
+\[
+\varphi_\rho(n)= \frac{i \left((1+i)^n-(1-\rho)^n\right)}{i+\rho}
+\]
+
+We may compute \(\varphi_\rho(n)\) efficiently as follows. We first make use of
+the /exponentiation-by-squaring/ algorithm which runs in \(\mathcal{O}(\ln n)\) time:
+
+#+NAME: rust:exponentiation-by-squaring
+#+BEGIN_SRC rust :crates '((num-traits . 0.2)) :exports code
+use core::ops::Mul;
+use num_traits::One;
+
+fn pow<T>(mut base: T, mut exp: usize) -> T
+where
+    T: Clone + One + Mul<T, Output = T>,
+{
+    let mut acc = T::one();
+    while exp != 0 {
+        if exp & 1 == 1 {
+            acc = acc * base.clone();
+        }
+        base = base.clone() * base;
+        exp >>= 1;
+    }
+    acc
+}
+#+END_SRC
+
+#+RESULTS: rust:exponentiation-by-squaring
+
+Using this efficient =pow= function, we can compute interest from a loan over a large number of updates:
+
+#+NAME: rust:interest-from-loan
+#+BEGIN_SRC rust :include '("rust:loan-return-fractions" "rust:exponentiation-by-squaring") :crates '((fixed . 1.17) (fixed-macro . 1.1) (num-traits . 0.2)) :features '((fixed . ("num-traits"))) :exports code
+fn interest_from_loan(ammount: i64, n: usize, rho: I64F64) -> I64F64 {
+    let one = I64F64::ONE;
+    let i = INTEREST_RATE;
+    let phi: I64F64 = i * (pow(one + i, n) - pow(one - rho, n)) / (i + rho);
+    I64F64::from(ammount) * phi
+}
+#+END_SRC
+
+#+RESULTS: rust:interest-from-loan
+
+#+BEGIN_SRC rust :include '("rust:exponentiation-by-squaring" "rust:loan-return-fractions") :crates '((fixed . 1.17) (fixed-macro . 1.1) (num-traits . 0.2)) :features '((fixed . ("num-traits"))) :exports none
+fn main() {
+    use fixed::traits::LossyInto;
+    use fixed::types::I64F64;
+
+    let one = I64F64::ONE;
+    {
+        let expected: i64 = 100000000;
+        let actual: i64 = (pow(one - RHO_YR15, 15 * 365 * 24 * 60 * 60 * 1000) * 100 * 100000000)
+            .ceil()
+            .lossy_into();
+        assert!(
+            (expected - actual).abs() < 5,
+            "15 year expected: {} actual: {}",
+            expected,
+            actual
+        );
+    }
+
+    {
+        let expected: i64 = 1000000000;
+        let actual: i64 = (pow(one - RHO_YR10, 10 * 365 * 24 * 60 * 60 * 1000) * 100 * 1000000000)
+            .ceil()
+            .lossy_into();
+        assert!((expected - actual).abs() < 5, "10 year");
+    }
+
+    {
+        let expected: i64 = 1000000000;
+        let actual: i64 = (pow(one - RHO_YR5, 5 * 365 * 24 * 60 * 60 * 1000) * 100 * 1000000000)
+            .ceil()
+            .lossy_into();
+        assert!((expected - actual).abs() < 5, "5 year");
+    }
+
+    {
+        let expected: i64 = 1000000000;
+        let actual: i64 = (pow(one - RHO_YR2, 2 * 365 * 24 * 60 * 60 * 1000) * 100 * 1000000000)
+            .ceil()
+            .lossy_into();
+        assert!((expected - actual).abs() < 5, "2 year");
+    }
+
+    {
+        let expected: i64 = 1000000000;
+        let actual: i64 = (pow(one - RHO_YR1, 1 * 365 * 24 * 60 * 60 * 1000) * 100 * 1000000000)
+            .ceil()
+            .lossy_into();
+        assert!((expected - actual).abs() < 5, "1 year");
+    }
+
+    {
+        let expected: i64 = 1000000000;
+        // 365 * 24 / 2 == 365 * 12
+        let actual: i64 = (pow(one - RHO_MONTH6, 365 * 12 * 60 * 60 * 1000) * 100 * 1000000000)
+            .ceil()
+            .lossy_into();
+        assert!((expected - actual).abs() < 5, "6 month");
+    }
+
+    {
+        let expected: i64 = 1000000000;
+        // 365 * 24 / 4 == 365 * 6
+        let actual: i64 = (pow(one - RHO_MONTH3, 365 * 6 * 60 * 60 * 1000) * 100 * 1000000000)
+            .ceil()
+            .lossy_into();
+        assert!((expected - actual).abs() < 5, "3 month");
+    }
+
+    {
+        let expected: i64 = 1000000000;
+        // 365 * 24 / 4 == 365 * 6
+        let actual: i64 = (pow(one - RHO_MONTH1, 30 * 24 * 60 * 60 * 1000) * 100 * 1000000000)
+            .ceil()
+            .lossy_into();
+        assert!((expected - actual).abs() < 5, "1 month");
+    }
+
+    {
+        let expected: i64 = 1000000000;
+        // 365 * 24 / 4 == 365 * 6
+        let actual: i64 = (pow(one - RHO_WEEK2, 14 * 24 * 60 * 60 * 1000) * 100 * 1000000000)
+            .ceil()
+            .lossy_into();
+        assert!((expected - actual).abs() < 5, "2 week");
+    }
+
+    {
+        let expected: i64 = 1000000000;
+        // 365 * 24 / 4 == 365 * 6
+        let actual: i64 = (pow(one - RHO_WEEK1, 7 * 24 * 60 * 60 * 1000) * 100 * 1000000000)
+            .ceil()
+            .lossy_into();
+        assert!((expected - actual).abs() < 5, "1 week");
+    }
+
+    {
+        let expected: i64 = 1000000000;
+        // 365 * 24 / 4 == 365 * 6
+        let actual: i64 = (pow(one - RHO_DAY3, 3 * 24 * 60 * 60 * 1000) * 100 * 1000000000)
+            .ceil()
+            .lossy_into();
+        assert!((expected - actual).abs() < 5, "3 day");
+    }
+
+    {
+        let expected: i64 = 1000000000;
+        // 365 * 24 / 4 == 365 * 6
+        let actual: i64 = (pow(one - RHO_DAY1, 24 * 60 * 60 * 1000) * 100 * 1000000000)
+            .ceil()
+            .lossy_into();
+        assert!((expected - actual).abs() < 5, "1 day");
+    }
+
+    {
+        // 10.8% APY
+        let expected: i64 = 11080000;
+        let actual: i64 = (pow(one + INTEREST_RATE, 356 * 24 * 60 * 60 * 1000) * 10000000)
+            .ceil()
+            .lossy_into();
+        assert_eq!(expected, actual, "1 year of interest")
+    }
+}
+#+END_SRC
+
+#+RESULTS:
+
+Following the formalism in Appendix [[Strictly Solvent Accounts Will
+Always Be Solvent (Proof)]], the total accrued interest for an account
+\(\alpha\) after \(n\) updates is \(\alpha(0)(1+i)^n +
+\sum_{k=1}^\infty \alpha(k)\varphi_{\rho_k}(n)\). In rust we can
+compute this value as follows:
+
+#+NAME: rust:total-interest
+#+BEGIN_SRC rust :include '("rust:interest-from-loan" "rust:loan-return-fractions" "rust:account-struct" "rust:exponentiation-by-squaring") :crates '((fixed . 1.17) (fixed-macro . 1.1) (num-traits . 0.2)) :features '((fixed . ("num-traits"))) :exports code
+fn total_interest(assets: &AccountAssets, n: usize) -> I64F64 {
+    let cash = I64F64::from(assets.cash as i64);
+    let cash_interest = pow(I64F64::ONE + INTEREST_RATE, n) * cash;
+    let net_loan_interest = interest_from_loan(assets.yr15, n, RHO_YR15)
+        + interest_from_loan(assets.yr10, n, RHO_YR10)
+        + interest_from_loan(assets.yr5, n, RHO_YR5)
+        + interest_from_loan(assets.yr2, n, RHO_YR2)
+        + interest_from_loan(assets.yr1, n, RHO_YR1)
+        + interest_from_loan(assets.month6, n, RHO_MONTH6)
+        + interest_from_loan(assets.month3, n, RHO_MONTH3)
+        + interest_from_loan(assets.month1, n, RHO_MONTH1)
+        + interest_from_loan(assets.week2, n, RHO_WEEK2)
+        + interest_from_loan(assets.week1, n, RHO_WEEK1)
+        + interest_from_loan(assets.day3, n, RHO_DAY3)
+        + interest_from_loan(assets.day1, n, RHO_DAY1);
+    cash_interest + net_loan_interest
+}
+#+END_SRC
+
+#+RESULTS: rust:total-interest
+
+#+NAME: rust:return-loan
+#+BEGIN_SRC rust :include '("rust:interest-from-loan" "rust:loan-return-fractions" "rust:account-struct" "rust:total-interest" "rust:exponentiation-by-squaring") :crates '((fixed . 1.17) (fixed-macro . 1.1) (num-traits . 0.2)) :features '((fixed . ("num-traits"))) :exports code
+use fixed::traits::LossyInto;
+
+fn return_loan(amount: &mut i64, n: usize, rho: I64F64) {
+    let fraction_returned = pow(I64F64::ONE - rho, n);
+    *amount = (fraction_returned * I64F64::from(*amount)).lossy_into();
+}
+#+END_SRC
+
+#+NAME: rust:bulk_update_account
+#+BEGIN_SRC rust :include '("rust:interest-from-loan" "rust:loan-return-fractions" "rust:account-struct" "rust:total-interest" "rust:exponentiation-by-squaring" "rust:return-loan") :crates '((fixed . 1.17) (fixed-macro . 1.1) (num-traits . 0.2)) :features '((fixed . ("num-traits"))) :exports code
+fn bulk_update_account(account: &mut Account, new_timestamp: u64) {
+    assert!(
+        new_timestamp > account.timestamp,
+        "new timestamp must be in the future"
+    );
+    let n = (new_timestamp - account.timestamp) as usize;
+    account.timestamp = new_timestamp;
+    let interest: i64 = total_interest(&account.assets, n).ceil().lossy_into();
+    assert!(interest >= 0, "interest is negative, account is insolvent");
+    account.assets.cash += interest as u64;
+    return_loan(&mut account.assets.yr15, n, RHO_YR15);
+    return_loan(&mut account.assets.yr10, n, RHO_YR10);
+    return_loan(&mut account.assets.yr5, n, RHO_YR5);
+    return_loan(&mut account.assets.yr2, n, RHO_YR2);
+    return_loan(&mut account.assets.yr1, n, RHO_YR1);
+    return_loan(&mut account.assets.month6, n, RHO_MONTH6);
+    return_loan(&mut account.assets.month3, n, RHO_MONTH3);
+    return_loan(&mut account.assets.month1, n, RHO_MONTH1);
+    return_loan(&mut account.assets.week2, n, RHO_WEEK2);
+    return_loan(&mut account.assets.week1, n, RHO_WEEK1);
+    return_loan(&mut account.assets.day3, n, RHO_DAY3);
+    return_loan(&mut account.assets.day1, n, RHO_DAY1);
+}
+#+END_SRC
+
+#+RESULTS: rust:bulk_update_account
+
+#+RESULTS: rust:return-loan
+
+#+NAME: rust:strictly-solvent
+#+BEGIN_SRC rust :include '("rust:account-struct") :exports code
+fn strictly_solvent(assets: &AccountAssets) -> bool {
+    let mut partial_nav = assets.cash as i64;
+    let asset_values = [
+        assets.yr15,
+        assets.yr10,
+        assets.yr5,
+        assets.yr2,
+        assets.yr1,
+        assets.month6,
+        assets.month3,
+        assets.month1,
+        assets.week2,
+        assets.week1,
+        assets.day3,
+        assets.day1,
+    ];
+    for asset in asset_values {
+        partial_nav += asset;
+        if partial_nav < 0 {
+            return false;
+        }
+    }
+    return true;
+}
+#+END_SRC
+
+#+RESULTS: rust:strictly-solvent
+
+#+NAME: rust:account-assets-add-assign
+#+BEGIN_SRC rust :include '("rust:account-struct") :exports code
+use std::ops::AddAssign;
+
+impl AddAssign for AccountAssets {
+    fn add_assign(&mut self, other: Self) {
+        self.cash += other.cash;
+        self.yr15 += other.yr15;
+        self.yr10 += other.yr10;
+        self.yr5 += other.yr5;
+        self.yr2 += other.yr2;
+        self.yr1 += other.yr1;
+        self.month6 += other.month6;
+        self.month3 += other.month3;
+        self.month1 += other.month1;
+        self.week2 += other.week2;
+        self.week1 += other.week1;
+        self.day3 += other.day3;
+        self.day1 += other.day1;
+    }
+}
+#+END_SRC
+
+#+RESULTS: rust:account-assets-add-assign
+
+#+NAME: rust:account-assets-sub-assign
+#+BEGIN_SRC rust :include '("rust:account-struct") :exports code
+use std::ops::SubAssign;
+
+impl SubAssign for AccountAssets {
+    fn sub_assign(&mut self, other: Self) {
+        self.cash -= other.cash;
+        self.yr15 -= other.yr15;
+        self.yr10 -= other.yr10;
+        self.yr5 -= other.yr5;
+        self.yr2 -= other.yr2;
+        self.yr1 -= other.yr1;
+        self.month6 -= other.month6;
+        self.month3 -= other.month3;
+        self.month1 -= other.month1;
+        self.week2 -= other.week2;
+        self.week1 -= other.week1;
+        self.day3 -= other.day3;
+        self.day1 -= other.day1;
+    }
+}
+#+END_SRC
+
+#+RESULTS: rust:account-assets-sub-assign
+
+#+BEGIN_SRC rust :include '("rust:exponentiation-by-squaring" "rust:interest-from-loan" "rust:loan-return-fractions" "rust:account-struct" "rust:total-interest" "rust:return-loan" "rust:strictly-solvent" "rust:bulk_update_account" "rust:account-assets-add-assign" "rust:account-assets-sub-assign") :exports code :crates '((fixed . 1.17) (fixed-macro . 1.1) (num-traits . 0.2)) :features '((fixed . ("num-traits"))) :exports code
+type Transfer = Account;
+
+fn transfer(
+    source_account: &mut Account,
+    target_account: &mut Account,
+    transfer: &mut Transfer,
+    new_timestamp: u64,
+) {
+    if !strictly_solvent(&transfer.assets) {
+        return;
+    }
+    bulk_update_account(transfer, new_timestamp);
+    let mut new_source_account = source_account.clone();
+    bulk_update_account(&mut new_source_account, new_timestamp);
+    if new_source_account.assets.cash < transfer.assets.cash {
+        return;
+    }
+    new_source_account.assets -= transfer.assets;
+    bulk_update_account(target_account, new_timestamp);
+    target_account.assets += transfer.assets;
+    *source_account = new_source_account;
+}
+#+END_SRC
+
+#+RESULTS:
+
+
 # Local Variables:
-# org-latex-pdf-process: ("latexmk -bibtex -file-line-error -shell-escape -pdflatex=xelatex -pdf -output-directory=\"%o\" -f \"%f\"")
+# org-latex-pdf-process: ("latexmk -file-line-error -shell-escape  -bibtex -pdflatex=xelatex -pdf -output-directory=\"%o\" -f \"%f\"")
 # bibtex-completion-bibliography: ("./risk-free-lending-refs.bib")
 # fill-column: 80
 # End:
