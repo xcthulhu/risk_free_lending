@@ -16,38 +16,77 @@
 #+OPTIONS: toc:nil
 #+OPTIONS: tex:t
 
-* Introduction
-:PROPERTIES:
-:CREATED:  [2022-06-13 Mon 11:36]
-:END:
+#+BEGIN_abstract
+We present a solution to the problem that bargaining is zero-sum in
+certain cases when it does not need to be. We focus on the case where
+participants have asymmetric time valuations of money. Our solution
+uses a novel interest-bearing financial product we call a /risk-free
+loan/. We show asymmetrical bargaining participants are both better
+off settling using risk-free loans. Risk-free loans assume an
+interest-bearing currency backing them. They may be credited or
+debited. We give a protocol for transferring them, and prove no party
+can ever be insolvent under our protocol. Our proofs have been
+formally verified in the computer proof assistant Isabelle/HOL. We
+provide practical, efficient implementations in literate python and
+rust. Our implementations are suited to a blockchain setting. They are
+each around ~200 lines of code. We give a closed form for the interest
+accrued by our financial product. We use this closed form to show how
+accounts may be globally updated every millisecond using lazy
+evaluation. Finally, we provide two applications. First, we show how
+to improve on first-price auctions in blockchain transaction fee
+markets. We propose clients send /multiple/ prices for different loan
+periods along with their transaction payloads. We suggest default
+exchange rates for clients and validators which result in settlement
+with risk-free loans. Second, we give a protocol for a novel
+subscription service system using /risk-free deposits/. We take
+inspiration from the /jeonse/ (전세) deposit system used in the South
+Korean housing market. In our system subscribers make deposits to
+service providers. Service providers collect interest on their
+deposits. They may also make risk-free loans using their deposits as
+collateral up to a set loan-period. We show that our protocol
+guarantees that subscribers can /always/ safely recover their deposits
+upon service termination. In summary, we believe our research provides
+an exciting new direction for blockchain research.
+#+END_abstract
 
+* Introduction
+** The Problem of Lending For Every Day Settlement
 One way of financing is to lend capital to another so they can
 reinvest it. An example of this is the practice of /jeonse/ ( 전세) in
 the South Korean housing market. In South Korea, people often do not
 pay rent. Instead, they lend a large fraction of the value of the home
 they are leasing to a landlord that owns the property. This enables
 financing outside of the traditional banking system
-[[cite:&shin_financing_2013]]. While they live in that home, the landlord
-invests the capital and collects dividends. When a person moves away
-they take their deposit back from the landlord.
+[[cite:&shin_financing_2013]]. While the tenant lives in that home, the
+landlord invests the capital and collects dividends. When the tenant
+moves away they take their deposit back from the landlord.
 
-Because of counter-party risk, lending capital this way does not work for
-micro-payments. Imagine that Alice buys a burger from Bob and wants to settle by
-offering Bob a 15-year loan of $35. Bob might not return the money to Alice.
-Rather than trusting Bob, Alice will find it more attractive to settle as usual
-by paying her flat out.
+Because of counter-party risk, lending capital this way does not
+work for every day settlement. Imagine that Alice buys a burger from Bob
+and wants to settle by offering Bob a 15-year loan of $35. Bob might
+not return the money to Alice. Rather than trusting Bob, Alice will
+find it more attractive to settle as usual by paying Bob in cash.
 
-Blockchains stop counter-party risk by enabling programmed return
-payments as well as make defaulting impossible. They can also enable
-automatic interest distribution. That way holders of capital can
-effectively receive dividends without reinvesting. Proof of stake
+** Our Contribution
+
+Blockchains enable /risk-free/ lending. In this paper we give a
+practical payment protocol which returns loans automatically. We
+provide an efficient prototype in ~200 lines of rust (see Appendix
+[[Prototype Implementation In Rust]]). We prove the protocol is /safe/. By
+safe, we mean the payment protocol makes insolvent accounts
+impossible. The protocol supports deterministic fixed interest
+payments, compounded potentially every millisecond. That way holders
+of capital can receive dividends on a continuous basis without
+reinvesting. All capital, both loans and cash, are /liquid/. By liquid
+we mean that anyone can transfer them at any time. Finally, we
+accomplish all of this without tracking counter-party obligations.
+
+** Prior Work
+
+Low-risk, interest bearing blockchain tokens are well known. /Proof of Stake/
 blockchains naturally pay out interest. Examples of proof of stake
 chains include Tendermint [[cite:&buchman_latest_2019]] and Solana
-[[cite:&yakovenko_solana_2018]]. And while a blockchain could track
-counter-party obligations, we will demonstrate this is not necessary.
-In addition, since paying for blockchain transactions themselves
-require micro-payments, we expect blockchain validators to naturally
-accept loans in exchange for their services to users.
+[[cite:&yakovenko_solana_2018]]. Unlike the protocol presented here, tokens in this scheme do not have deterministic interest.  Interest is dependent on validator uptime.
 
 #+begin_src bibtex :exports none :tangle "./risk-free-lending-refs.bib"
 @techreport{buchman_latest_2019,
@@ -95,12 +134,12 @@ whatever interest of the remaining capital they have upon
 distribution. The system could return lent money either annually,
 quarterly, or even every millisecond[fn::In fact, the rust prototype
 presented in Appendix [[Prototype Implementation In Rust]], which we
-intend for a blockchain implementation, lazily updates accounts every
-millisecond.]. Since the system returns a percentage, it will only
-return the full loaned amount in the limit. As a practical measure, we
-have loans target 99% of the lent amount returned after the specified
-period. For example, a $1 1-year loan would be reduce to $0.01 after a
-year, $0.0001 a year after that, etc.
+intend to adapt for a production a blockchain implementation, lazily
+updates accounts every millisecond.]. Since the system returns a
+percentage, it will only return the full loaned amount in the limit.
+As a practical measure, we have loans target 99% of the lent amount
+returned after the specified period. For example, a $1 1-year loan
+would be reduce to $0.01 after a year, $0.0001 a year after that, etc.
 
 #+begin_src python :exports none :results none :noweb-ref format_accounts
 from typing import Dict, List
@@ -262,14 +301,11 @@ return json.dumps(accounts, indent=4)
 #+RESULTS: accounts-1
 #+begin_src python
 {
-    "Alice": {
-        "Cash": 50,
-        "15-Yr": -35
-    },
-    "Bob": {
-        "Cash": 0,
-        "15-Yr": 35
-    }
+    "Cash": 0,
+    "15-Yr": 35,
+    "10-Yr": -10,
+    "5-Yr": 5,
+    "1-Yr": -10
 }
 #+end_src
 
@@ -317,7 +353,7 @@ structure with ordered fields rather than a T-account.
 return accounts
 #+end_src
 
-#+CAPTION: A /python dictionary/ representation of a ledger containing accounts for Alice and Bob. Note that this representation is inappropriate for production. Appendix [[Prototype Implementation In Rust]] presents a prototype in the rust programming language suited to an actual blockchain implementation.
+#+CAPTION: A python /dictionary/ representation of a ledger containing accounts for Alice and Bob. Note that this representation is inappropriate for production. Appendix [[Prototype Implementation In Rust]] presents a prototype in the rust programming language suited to an actual blockchain implementation.
 #+NAME: accounts-1-listing
 #+RESULTS:
 #+begin_src python
@@ -342,25 +378,26 @@ Alice and Bob earn roughly \(1.23\%\) interest every quarter on the
 the sum of all of the entries in the ``Debit'' column minus the values
 in the entries in the ``Credit'' column. In the current example,
 Alice's NAV is \(\$50 - \$35 = \$25\) and Bob's NAV is \(\$35\).
-Listing [[net-asset-value-listing]] in Appendix [[Toy Python Implementation]]
-presents how to do this calculation in the python programming
-language.
+Appendix [[Prototype Python Implementation]] presents how to do this
+calculation in the python programming language.
 
-#+begin_src python :exports none :results none :noweb-ref update_account
-from typing import Dict
+#+BEGIN_SRC python :exports none :results none :noweb-ref loans_returned_every_quarter
+# Fractions of loans returned every quarter.
+# Correspond to 99% of the loan returned by the period indicated.
+loan_return_fractions = {
+    "15-Yr": 1 - 0.01 ** (1.0 / (15.0 * 4.0)),
+    "10-Yr": 1 - 0.01 ** (1.0 / (10.0 * 4.0)),
+    "5-Yr": 1 - 0.01 ** (1.0 / (5.0 * 4.0)),
+    "2-Yr": 1 - 0.01 ** (1.0 / (2.0 * 4.0)),
+    "1-Yr": 1 - 0.01 ** (1.0 / 4.0),
+}
+#+END_SRC
 
-
+#+BEGIN_SRC python :exports none :results none :noweb-ref update_account
 # Quarterly interest at a 5.0% APY
 i = 1.05 ** (1.0 / 4.0) - 1
 
-# Rates for 99% loans return periods specified in years.
-loan_return_rates = {
-    "15-Yr": 0.01 ** (1.0 / (15.0 * 4.0)),
-    "10-Yr": 0.01 ** (1.0 / (10.0 * 4.0)),
-    "5-Yr": 0.01 ** (1.0 / (5.0 * 4.0)),
-    "2-Yr": 0.01 ** (1.0 / (2.0 * 4.0)),
-    "1-Yr": 0.01 ** (1.0 / 4.0),
-}
+from typing import Dict
 
 
 def update_account(account: Dict[str, float], quarters=1):
@@ -370,8 +407,8 @@ def update_account(account: Dict[str, float], quarters=1):
             if key == "Cash":
                 # Note: sum of account values = net asset value...
                 account[key] += i * sum(account.values())
-            elif key in loan_return_rates:
-                account[key] *= loan_return_rates[key]
+            elif key in loan_return_fractions:
+                account[key] *= 1 - loan_return_fractions[key]
             else:
                 raise Exception(f"Unknown key: {key}")
 
@@ -386,7 +423,9 @@ After a quarter Alice and Bob's accounts would be:
 
 #+begin_src python :exports results :results drawer replace latex :noweb yes :var accounts=accounts-1
 <<format_accounts>>
+<<loans_returned_every_quarter>>
 <<update_account>>
+
 ledger = json.loads(accounts)
 update_ledger(ledger)
 
@@ -414,7 +453,9 @@ After a year their accounts would be:
 
 #+begin_src python :exports results :results drawer replace latex :noweb yes :var accounts=accounts-1
 <<format_accounts>>
+<<loans_returned_every_quarter>>
 <<update_account>>
+
 ledger = json.loads(accounts)
 update_ledger(ledger, quarters = 4)
 
@@ -442,7 +483,9 @@ After 5 years:
 
 #+begin_src python :exports results :results drawer replace latex :noweb yes :var accounts=accounts-1
 <<format_accounts>>
+<<loans_returned_every_quarter>>
 <<update_account>>
+
 ledger = json.loads(accounts)
 update_ledger(ledger, quarters = 4 * 5)
 
@@ -470,7 +513,9 @@ After 10 years:
 
 #+begin_src python :exports results :results drawer replace latex :noweb yes :var accounts=accounts-1
 <<format_accounts>>
+<<loans_returned_every_quarter>>
 <<update_account>>
+
 ledger = json.loads(accounts)
 update_ledger(ledger, quarters = 4 * 10)
 
@@ -498,7 +543,9 @@ And finally 15 years:
 
 #+begin_src python :exports results :results drawer replace latex :noweb yes :var accounts=accounts-1
 <<format_accounts>>
+<<loans_returned_every_quarter>>
 <<update_account>>
+
 ledger = json.loads(accounts)
 update_ledger(ledger, quarters = 4 * 15)
 
@@ -594,6 +641,7 @@ Cash &  {\$50.00} &  & &  &  & &  &  \\
 
 #+begin_src python :exports none :results code replace :noweb yes :var accounts=accounts-2
 <<format_accounts>>
+<<loans_returned_every_quarter>>
 <<update_account>>
 ledger = json.loads(accounts)
 update_ledger(ledger, quarters = 5*4)
@@ -629,6 +677,7 @@ After a year the account would be:
 
 #+begin_src python :exports results :results drawer replace latex :noweb yes :var accounts=accounts-2
 <<format_accounts>>
+<<loans_returned_every_quarter>>
 <<update_account>>
 ledger = json.loads(accounts)
 update_ledger(ledger, quarters = 1)
@@ -658,6 +707,7 @@ After 2.5 years:
 
 #+begin_src python :exports results :results drawer replace latex :noweb yes :var accounts=accounts-2
 <<format_accounts>>
+<<loans_returned_every_quarter>>
 <<update_account>>
 ledger = json.loads(accounts)
 update_ledger(ledger, quarters = 6)
@@ -687,6 +737,7 @@ And after 5 years:
 
 #+begin_src python :exports results :results drawer replace latex :noweb yes :var accounts=accounts-2
 <<format_accounts>>
+<<loans_returned_every_quarter>>
 <<update_account>>
 ledger = json.loads(accounts)
 update_ledger(ledger, quarters = 4*5)
@@ -772,6 +823,7 @@ The reason this balance is not allowed is because after a quarter it will be ins
 
 #+begin_src python :exports results :results drawer replace latex :noweb yes :var accounts=temporarily-solvent-balance
 <<format_accounts>>
+<<loans_returned_every_quarter>>
 <<update_account>>
 ledger = json.loads(accounts)
 update_ledger(ledger)
@@ -805,7 +857,7 @@ Every account balance shown in \S[[A Lending System]] will remain solvent
 indefinitely. The interest rate could even be zero. This is because they have a
 special property. We say they are ``strictly solvent.''
 
-A balance is /strictly solvent/ when for all periods \(P\) the sum of the debit
+An account is /strictly solvent/ when for all periods \(P\) the sum of the debit
 minus the credit is positive for periods equal to or longer than \(P\). We call
 such a sum a /partial NAV/. We write the partial NAV for periods 15 years or
 longer as ``15-Yr+ Nav'', periods 10 years or longer as ``10-Yr+ Nav'', etc.
@@ -866,6 +918,7 @@ return json.dumps(accounts, indent=4)
 
 #+begin_src python :exports results :results drawer replace latex :noweb yes :var accounts=account-lots-of-rows
 <<format_accounts>>
+<<loans_returned_every_quarter>>
 <<update_account>>
 
 i = 0
@@ -897,6 +950,7 @@ Cash &  {\$10.00} &  \\
 This is because, for each rate, the sum of the credits for slower rates is:
 
 #+begin_src python :exports results :results raw :noweb yes :var accounts=account-lots-of-rows
+<<loans_returned_every_quarter>>
 <<update_account>>
 <<balance_full>>
 account = list(json.loads(accounts).values())[0]
@@ -925,6 +979,7 @@ from typing import Dict
 from collections.abc import Iterator
 
 <<balance_full>>
+<<loans_returned_every_quarter>>
 <<update_account>>
 
 
@@ -1007,7 +1062,7 @@ solvent.
 
 [fn:see-proof] See Appendix [[Strictly Solvent Accounts Will Always Be Solvent (Proof)]] for a proof of this claim.
 
-* Forever Solvent Balances are Transferable
+* Only Forever Solvent Balances are Transferable
 #+begin_comment
 TODO: Rewrite me
 
@@ -1059,6 +1114,7 @@ The 15-year credit he sent is more valuable. The balance Bob sent to Alice will
 be a net positive in credit after a quarter.
 #+end_comment
 
+* The Risk Free Lending Protocol
 * Models For Exchange Rates For Lent Capital
 ** Basic Long-Term Compound Interest Model
 A way to model exchange rates for credit is to use relative long-term compound
@@ -1285,6 +1341,12 @@ return phi(i, r_15, 7) / phi(i, r_1, 7)
 #+end_src
 
 ** Relative Opportunity Cost Model
+* Making Zero-Sum Bargaining Win-Win
+** Example Using Asymmetrical Accounting
+** General Case of Participants With Different Discount Rates
+* Applications of Risk-Free Lending
+** Combinatorial Market Mechanism For Fees
+** Subscription Services Using Deposits
 * Conclusion
 * References
   :PROPERTIES:
@@ -1415,7 +1477,7 @@ We express the \(n\)th /partial NAV/, as introduced in \S[[Strictly Solvent Acco
 
 An account is /strictly solvent/ if and only if \(0 \leq \sum_{k=0}^n\alpha(n)\) for all \(n\). We say an account is /solvent/ when \(0 \leq \sum_{k=0}^\infty \alpha(n)\).  An account that is /strictly solvent/ is always /solvent/, because we assume that \(\alpha\) has finite support.
 
-We assume the existence of a /loan return rate/ function \(\rho: \mathbb{N} \to [0,1)\) such that \(\rho(0)=0\) and if \(n \leq m \) then \(\rho(n) \leq \rho(m)\).
+We assume the existence of a /loan return rate/ function \(\rho: \mathbb{N} \to [0,1)\) such that \(\rho(0)=0\) and if \(n < m \) then \(\rho(n) < \rho(m)\).
 
 We further assume an /interest rate/ \(i \in [0,1)\).
 
@@ -1435,14 +1497,81 @@ Provided these definitions, we have the following theorem:
 If \(\alpha\) is strictly solvent then \(\uparrow \alpha\) is strictly solvent.
 #+end_theorem
 #+begin_proof
-We first argue it suffices to prove \(\alpha_\rho(n) = (1 - \rho(n))\;\alpha(n)\) is strictly solvent.  To see this, first observe that \(0 \leq \sum_{k=0}^\infty \alpha(k)\). This is because \(\sum_{k=0}^\infty \alpha(k) = \sum_{k=0}^b \alpha(k)\) where[fn:: here we know \(b\) is well-defined because \(\alpha\) has finite support] \(b = \max\; \{n \in \mathbb{N}\;:\; \alpha(n) \neq 0\}\), and \(0 \leq \sum_{k=0}^n \alpha(k)\) for all \(n\) (by \(\alpha\) being strictly solvent).  Since \(0\leq i\) and \(0 \leq \sum_{k=0}^\infty \alpha(k)\), then \(0 \leq i \sum_{k=0}^\infty \alpha(k)\) . This means that if \(\alpha_\rho(n)\) is strictly solvent, or in other words \(0 \leq \sum_{k=0}^n (1 - \rho(k))\alpha(k) \) for all \(n\), then \(0 \leq i \sum_{k=0}^\infty \alpha(k) + \sum_{k=0}^n (1 - \rho(k))\;\alpha(k) \) for all \(n\).  But this is equivalent to saying \(\uparrow \alpha\) is strictly solvent since \(\rho (0) = 0\).
+We first argue it suffices to prove \(\alpha_\rho(n) = (1 - \rho(n))\;\alpha(n)\) is strictly solvent.  To see this, first observe that \(0 \leq \sum_{k=0}^\infty \alpha(k)\). This is because \(\sum_{k=0}^\infty \alpha(k) = \sum_{k=0}^b \alpha(k)\) where \(b = \max\; \{n \in \mathbb{N}\;:\; \alpha(n) \neq 0\}\),[fn:: here we know \(b\) is well-defined because \(\alpha\) has finite support] and \(0 \leq \sum_{k=0}^n \alpha(k)\) for all \(n\) (by \(\alpha\) being strictly solvent).  Since \(0\leq i\) and \(0 \leq \sum_{k=0}^\infty \alpha(k)\), then \(0 \leq i \sum_{k=0}^\infty \alpha(k)\) . This means that if \(\alpha_\rho(n)\) is strictly solvent, or in other words \(0 \leq \sum_{k=0}^n (1 - \rho(k))\alpha(k) \) for all \(n\), then \(0 \leq i \sum_{k=0}^\infty \alpha(k) + \sum_{k=0}^n (1 - \rho(k))\;\alpha(k) \) for all \(n\).  But this is equivalent to saying \(\uparrow \alpha\) is strictly solvent since \(\rho (0) = 0\).
 
-To prove \(\alpha_\rho(n)\) is strictly solvent, first observe that for every \(n\) and \(m\) such that \(n \leq m\) then \((1 - \rho(n))\sum_{k=0}^m \alpha(k) \leq \sum_{k=0}^m (1- \rho(k))\;\alpha(k) \). This follows by induction on \(m\), and from our assumptions that \(\rho\)'s range is \([0,1)\) and that \(\rho\) is monotonically increasing. But it also follows that \(0\leq 1 - \rho(n)\), and since we assume \(0 \leq \sum_{k=0}^m \alpha(k)\) for all \(m\), then  \(0 \leq (1 - \rho(n))\sum_{k=0}^m \alpha(k)\) . It follows that \(0 \leq \sum_{k=0}^m (1- \rho(k))\;\alpha(k)\) by transitivity, hence \(\alpha_\rho\) is strictly solvent which suffices the hypothesis.
+To prove \(\alpha_\rho(n)\) is strictly solvent, first observe that for every \(n\) and \(m\) such that \(n \leq m\) then \((1 - \rho(n))\sum_{k=0}^m \alpha(k) \leq \sum_{k=0}^m (1- \rho(k))\;\alpha(k) \). This follows by induction on \(m\), and from our assumptions that \(\rho\)'s range is \([0,1)\) and that \(\rho\) is strictly increasing. But it also follows that \(0\leq 1 - \rho(n)\), and since we assume \(0 \leq \sum_{k=0}^m \alpha(k)\) for all \(m\), then  \(0 \leq (1 - \rho(n))\sum_{k=0}^m \alpha(k)\) . It follows that \(0 \leq \sum_{k=0}^m (1- \rho(k))\;\alpha(k)\) by transitivity, hence \(\alpha_\rho\) is strictly solvent which suffices the hypothesis.
 #+end_proof
 
-* The DCF Exchange Rate Is Closer to 1 to 1 Than Without Discounting (Proof)
+* The DCF Exchange Rate Converges to 1 to 1 With Higher Discount Factors (Proof)
 * Example of a Forever Solvent Balance Which Is Not Strictly Solvent
-* Toy Python Implementation
+* Prototype Python Implementation
+** Introduction
+
+In this section we provide a /literate code/ prototype implementation
+of the risk-free lending protocol in the python programming language.
+
+The system presented has a fixed interest rate of 5% APY.
+
+This prototype updates accounts every quarter.
+
+** Data Representation
+<<python_data_representation>>
+
+The python prototype represents accounts as a dictionary. The keys of
+the dictionary are =Cash=, =15-Yr=, =10-Yr=, =5-Yr=, =2-Yr=, and
+=1-Yr=. The keys may or may not be present. For example an account
+could be:
+
+#+BEGIN_SRC python :exports results :results code replace
+import json
+
+account = {
+    "Cash": 0,
+    "15-Yr": 35,
+    "10-Yr": -10,
+    "5-Yr": 5,
+    "1-Yr": -10
+}
+
+return json.dumps(account, indent=4)
+#+END_SRC
+
+#+RESULTS:
+#+begin_src python
+{
+    "Cash": 0,
+    "15-Yr": 35,
+    "10-Yr": -10,
+    "5-Yr": 5,
+    "1-Yr": -10
+}
+#+end_src
+
+We represent a /ledger/ as a dictionary of dictionaries.  We gave an example in [[A Lending System]].  Here is that same example:
+
+#+begin_src python :exports results :results value code :noweb yes :var accounts=accounts-1 :eval never-export
+return accounts
+#+end_src
+
+#+RESULTS:
+#+begin_src python
+{
+    "Alice": {
+        "Cash": 50,
+        "15-Yr": -35
+    },
+    "Bob": {
+        "Cash": 0,
+        "15-Yr": 35
+    }
+}
+#+end_src
+
+** Interest and Loan Return Fractions
+
+#+begin_src python :exports code :results none :noweb yes
+<<loans_returned_every_quarter>>
+#+end_src
 
 #+NAME: net-asset-value-listing
 #+CAPTION: An implementation of the risk-free lending account update system in python, following the JSON/python dictionary account data structure format used in Listing [[accounts-1-listing]].
@@ -1452,6 +1581,7 @@ To prove \(\alpha_\rho(n)\) is strictly solvent, first observe that for every \(
 
 * Prototype Implementation In Rust
 
+** Introduction
 In this section we provide a /literate code/ prototype implementation
 of the risk-free lending protocol in the rust programming language.
 
@@ -1459,7 +1589,8 @@ The system presented has a fixed interest rate of 10.8% APY.
 
 This prototype effectively updates accounts every millisecond. The system achieves this by /lazily/ distributing interest and returning loans. We show how to collapse millions of updates into a single calculation. We do this by using fixed interest and the closed form in equation \eqref{eqn:interest-closed-form} from \S[[Basic Long-Term Compound Interest Model]].
 
-Our rust representation of an account is similar to the data structure from Listing [[accounts-1-listing]].
+** Data Representation
+The rust prototype represents accounts as a data structure. is similar to the data structure from Listing [[accounts-1-listing]].
 
 #+NAME: rust:account-struct
 #+BEGIN_SRC rust :exports code
@@ -1504,16 +1635,22 @@ payments. Rather than pay 2¢, users could instead elect to lend out
 \(\approx\) $200 for 24 hours instead. The latter yields roughly the
 same in interest.
 
+Unlike the python representation presented in
+\S[[python_data_representation]], we do not model ledgers in this rust
+prototype.
+
+** Interest and Loan Return Fractions
+
 The following constants capture the different fractions \(\rho\)
-returned each millisecond for each of the loans. We use the =fixed=
-crate[fn:: https://docs.rs/fixed/latest/fixed/] for fixed-point
-arithmetic. We need to use fixed-point arithmetic to ensure
-calculations are deterministic (as we are assuming a blockchain
-setting). We use the signed fixed point type =I64F64= for our
-calculations. This type has 128 bits -- 64 fractional bits and 64
-integer bits. Because it has 64 fractional bits, it can model
-increments as small as \(\Delta = 2^{-64}\) in size, or roughly 21
-decimal places.
+returned each millisecond for each of the loans and the compound
+interest distributed. We use the =fixed= crate[fn::
+https://docs.rs/fixed/latest/fixed/] for fixed-point arithmetic. We
+need to use fixed-point arithmetic to ensure calculations are
+deterministic (as we are assuming a blockchain setting). We use the
+signed fixed point type =I64F64= for our calculations. This type has
+128 bits -- 64 fractional bits and 64 integer bits. Because it has 64
+fractional bits, it can model increments as small as \(\Delta =
+2^{-64}\) in size, or roughly 21 decimal places.
 
 #+NAME: rust:loan-return-fractions
 #+BEGIN_SRC rust :crates '((fixed . 1.17) (fixed-macro . 1.1)) :exports code
@@ -1543,26 +1680,36 @@ Note the following regarding the constant calculations above:
  - We compute =RHO_YR15= by evaluating
    \(1-\left(\frac{1}{100}\right)^{1/(15\times 365\times 24 \times 60
    \times 60 \times 1000)}\) to 21 decimal places. The other constants
-   are similarly calculated.
+   have similar calculations.
 
  - We compute =INTEREST_RATE= by evaluating
    \(\left(\frac{1108}{1000}\right)^{1/(365\times 24 \times 60 \times
    60 \times 1000)}-1\) to 21 decimal places in a similar fashion to
    =RHO_YR15=. This corresponds to a 10.8% APY.
 
-We next show how to compute interest as a bulk operation across
-a potentially large numbers of updates. Consider a $1 loan where
-\(\rho\) is the fraction of that loan returned every update. Recall
-equation \eqref{eqn:interest-closed-form} in \S[[Basic Long-Term
-Compound Interest Model]] we have. After \(n\) updates, the interest
-yielded for the loan is:
+** Interest and Loan Return Fractions
+
+We implement performing \(n\) account updates as a /lazy/ \(\mathcal{O}(\ln n)\)
+operation, which we execute only at transfer. Our design effectively
+accomplishes millisecond update of every account across the ledger.
+
+We accomplish this by using closed forms and
+/exponentiation-by-squaring/.
+
+The closed form of the interest yielded by a loan is as follows.
+Consider a $1 loan where \(\rho\) is the fraction of that loan
+returned every update. Recall equation
+\eqref{eqn:interest-closed-form} in \S[[Basic Long-Term Compound
+Interest Model]]. After \(n\) updates, the interest yielded for
+the loan is:
 
 \[
 \varphi_\rho(n)= \frac{i \left((1+i)^n-(1-\rho)^n\right)}{i+\rho}
 \]
 
-We may compute \(\varphi_\rho(n)\) efficiently as follows. We first make use of
-the /exponentiation-by-squaring/ algorithm which runs in \(\mathcal{O}(\ln n)\) time:
+The /exponentiation-by-squaring/ algorithm provides a fast way to
+compute \(\varphi_\rho(n)\). The algorithm which runs in
+\(\mathcal{O}(\ln n)\) steps. Below is a rust implementation:
 
 #+NAME: rust:exponentiation-by-squaring
 #+BEGIN_SRC rust :crates '((num-traits . 0.2)) :exports code
@@ -1587,7 +1734,8 @@ where
 
 #+RESULTS: rust:exponentiation-by-squaring
 
-Using this efficient =pow= function, we can compute interest from a loan over a large number of updates:
+Using this efficient =pow= function, we can compute interest from a
+loan over a large number of updates:
 
 #+NAME: rust:interest-from-loan
 #+BEGIN_SRC rust :include '("rust:loan-return-fractions" "rust:exponentiation-by-squaring") :crates '((fixed . 1.17) (fixed-macro . 1.1) (num-traits . 0.2)) :features '((fixed . ("num-traits"))) :exports code
@@ -1727,19 +1875,23 @@ fn main() {
 #+END_SRC
 
 #+RESULTS:
+: error: Could not compile `cargoUzoQUf`.
 
 Following the formalism in Appendix [[Strictly Solvent Accounts Will
-Always Be Solvent (Proof)]], the total accrued interest for an account
-\(\alpha\) after \(n\) updates is \(\alpha(0)(1+i)^n +
-\sum_{k=1}^\infty \alpha(k)\varphi_{\rho_k}(n)\). In rust we can
-compute this value as follows:
+Always Be Solvent (Proof)]], the total cash plus accrued interest for an
+account \(\alpha\) after \(n\) updates is \(\alpha(0)(1+i)^n +
+\sum_{k=1}^\infty \alpha(k)\varphi_{\rho_k}(n)\). In rust we can use
+this formula to distribute interest over \(n\) updates to the account:
 
-#+NAME: rust:total-interest
+#+NAME: rust:distribute-interest
 #+BEGIN_SRC rust :include '("rust:interest-from-loan" "rust:loan-return-fractions" "rust:account-struct" "rust:exponentiation-by-squaring") :crates '((fixed . 1.17) (fixed-macro . 1.1) (num-traits . 0.2)) :features '((fixed . ("num-traits"))) :exports code
-fn total_interest(assets: &AccountAssets, n: usize) -> I64F64 {
+use fixed::traits::LossyInto;
+
+fn distribute_interest(assets: &mut AccountAssets, n: usize) {
+    // Convert to fixed-point arithmetic and compute interest
     let cash = I64F64::from(assets.cash as i64);
-    let cash_interest = pow(I64F64::ONE + INTEREST_RATE, n) * cash;
-    let net_loan_interest = interest_from_loan(assets.yr15, n, RHO_YR15)
+    let compounded_cash: I64F64 = pow(I64F64::ONE + INTEREST_RATE, n) * cash;
+    let net_loan_interest: I64F64 = interest_from_loan(assets.yr15, n, RHO_YR15)
         + interest_from_loan(assets.yr10, n, RHO_YR10)
         + interest_from_loan(assets.yr5, n, RHO_YR5)
         + interest_from_loan(assets.yr2, n, RHO_YR2)
@@ -1751,52 +1903,100 @@ fn total_interest(assets: &AccountAssets, n: usize) -> I64F64 {
         + interest_from_loan(assets.week1, n, RHO_WEEK1)
         + interest_from_loan(assets.day3, n, RHO_DAY3)
         + interest_from_loan(assets.day1, n, RHO_DAY1);
-    cash_interest + net_loan_interest
+    let raw_total: I64F64 = compounded_cash + net_loan_interest;
+
+    // Convert to signed integer
+    let new_cash_balance: i64 = raw_total.ceil().lossy_into(); // ;-)
+    assert!(new_cash_balance >= 0, "account is insolvent");
+    assets.cash = new_cash_balance as u64;
 }
 #+END_SRC
 
-#+RESULTS: rust:total-interest
+#+RESULTS: rust:distribute-interest
+
+The remaining credited or debited loan for a given period after
+multiple updates also has a simple closed form. For an account
+\(\alpha\) and a loan with index \(k\) and fraction \(\rho_k\)
+returned each update, the resulting balance after \(n\) updates is
+\(\alpha(k)\,(1-\rho_k)^n\). In rust this we implement this as
+follows:
 
 #+NAME: rust:return-loan
-#+BEGIN_SRC rust :include '("rust:interest-from-loan" "rust:loan-return-fractions" "rust:account-struct" "rust:total-interest" "rust:exponentiation-by-squaring") :crates '((fixed . 1.17) (fixed-macro . 1.1) (num-traits . 0.2)) :features '((fixed . ("num-traits"))) :exports code
-use fixed::traits::LossyInto;
-
+#+BEGIN_SRC rust :include '("rust:interest-from-loan" "rust:loan-return-fractions" "rust:account-struct" "rust:distribute-interest" "rust:exponentiation-by-squaring") :crates '((fixed . 1.17) (fixed-macro . 1.1) (num-traits . 0.2)) :features '((fixed . ("num-traits"))) :exports code
 fn return_loan(amount: &mut i64, n: usize, rho: I64F64) {
     let fraction_returned = pow(I64F64::ONE - rho, n);
     *amount = (fraction_returned * I64F64::from(*amount)).lossy_into();
 }
 #+END_SRC
 
-#+NAME: rust:bulk_update_account
-#+BEGIN_SRC rust :include '("rust:interest-from-loan" "rust:loan-return-fractions" "rust:account-struct" "rust:total-interest" "rust:exponentiation-by-squaring" "rust:return-loan") :crates '((fixed . 1.17) (fixed-macro . 1.1) (num-traits . 0.2)) :features '((fixed . ("num-traits"))) :exports code
-fn bulk_update_account(account: &mut Account, new_timestamp: u64) {
-    assert!(
-        new_timestamp > account.timestamp,
-        "new timestamp must be in the future"
-    );
-    let n = (new_timestamp - account.timestamp) as usize;
-    account.timestamp = new_timestamp;
-    let interest: i64 = total_interest(&account.assets, n).ceil().lossy_into();
-    assert!(interest >= 0, "interest is negative, account is insolvent");
-    account.assets.cash += interest as u64;
-    return_loan(&mut account.assets.yr15, n, RHO_YR15);
-    return_loan(&mut account.assets.yr10, n, RHO_YR10);
-    return_loan(&mut account.assets.yr5, n, RHO_YR5);
-    return_loan(&mut account.assets.yr2, n, RHO_YR2);
-    return_loan(&mut account.assets.yr1, n, RHO_YR1);
-    return_loan(&mut account.assets.month6, n, RHO_MONTH6);
-    return_loan(&mut account.assets.month3, n, RHO_MONTH3);
-    return_loan(&mut account.assets.month1, n, RHO_MONTH1);
-    return_loan(&mut account.assets.week2, n, RHO_WEEK2);
-    return_loan(&mut account.assets.week1, n, RHO_WEEK1);
-    return_loan(&mut account.assets.day3, n, RHO_DAY3);
-    return_loan(&mut account.assets.day1, n, RHO_DAY1);
+#+RESULTS: rust:return-loan
+
+Putting our =distribute_interest= and =return_loan= functions
+together, we may now write our account update routine.
+
+We do this by first looking at the difference \(n\), in milliseconds,
+between the current timestamp and the account's =timestamp= field. All
+timestamps are =u64= values representing milliseconds since midnight
+January 1, 1970 GMT.
+
+Once we have number \(n\) of milliseconds we must update over, we run
+=distribute_interest= and =return_loan=. We do not naïvely update in a
+loop for each millisecond. The naïve approach we do not use runs in
+\(\mathcal{O}(n)\). Instead the subroutines we use employ run in
+\(\mathcal{O}(\ln n)\) loop iterations. Because our design is
+efficient, even updating an account after 10 years have passed (or
+\(\approx 3.156 \times 10^{11}\) milliseconds) takes roughly 40 loop
+iterations per exponentiation operation.
+
+After distributing interest and updating credited and debited loans, we update the timestamp.
+
+We implement update as public method on the =Account='s inherent implementation.
+
+#+NAME: rust:update-account
+#+BEGIN_SRC rust :include '("rust:interest-from-loan" "rust:loan-return-fractions" "rust:account-struct" "rust:distribute-interest" "rust:exponentiation-by-squaring" "rust:return-loan") :crates '((fixed . 1.17) (fixed-macro . 1.1) (num-traits . 0.2)) :features '((fixed . ("num-traits"))) :exports code
+impl Account {
+    pub fn update(&mut self, new_timestamp: u64) {
+        assert!(
+            new_timestamp > self.timestamp,
+            "new timestamp must be in the future"
+        );
+        let n = (new_timestamp - self.timestamp) as usize;
+        distribute_interest(&mut self.assets, n);
+        return_loan(&mut self.assets.yr15, n, RHO_YR15);
+        return_loan(&mut self.assets.yr10, n, RHO_YR10);
+        return_loan(&mut self.assets.yr5, n, RHO_YR5);
+        return_loan(&mut self.assets.yr2, n, RHO_YR2);
+        return_loan(&mut self.assets.yr1, n, RHO_YR1);
+        return_loan(&mut self.assets.month6, n, RHO_MONTH6);
+        return_loan(&mut self.assets.month3, n, RHO_MONTH3);
+        return_loan(&mut self.assets.month1, n, RHO_MONTH1);
+        return_loan(&mut self.assets.week2, n, RHO_WEEK2);
+        return_loan(&mut self.assets.week1, n, RHO_WEEK1);
+        return_loan(&mut self.assets.day3, n, RHO_DAY3);
+        return_loan(&mut self.assets.day1, n, RHO_DAY1);
+        self.timestamp = new_timestamp;
+    }
 }
 #+END_SRC
 
-#+RESULTS: rust:bulk_update_account
+#+RESULTS: rust:update-account
 
-#+RESULTS: rust:return-loan
+We next implement the protocol for transferring assets from one account to another. First, since we permit users to transfer cash, credited and debited loans, we make =Transfer= a type alias for =Account=.
+
+#+NAME: rust:transfer-type-alias
+#+BEGIN_SRC rust :include '("rust:account-struct") :exports code
+type Transfer = Account;
+#+END_SRC
+
+#+RESULTS: rust:transfer-type-alias
+
+The system must only permit transfer of balances that are forever solvent, given that
+the origin account remains forever solvent after transfer.
+We present this requirement in \S[[Only Forever Solvent Balances are Transferable]].
+
+Verifying if an account is /strictly solvent/ suffices to show the account will be forever solvent. We introduced this concept in \S[[Strictly Solvent Accounts Will Always Be Solvent]]. We prove that strictly solvent accounts are always solvent in Appendix [[Strictly Solvent Accounts Will Always Be Solvent (Proof)]].
+
+Computing if an account is strictly solvent is linear in the number of loan periods supported:
 
 #+NAME: rust:strictly-solvent
 #+BEGIN_SRC rust :include '("rust:account-struct") :exports code
@@ -1827,6 +2027,8 @@ fn strictly_solvent(assets: &AccountAssets) -> bool {
 #+END_SRC
 
 #+RESULTS: rust:strictly-solvent
+
+Since it is natural to /add/ and /subtract/ transfers from accounts, we provide instances of the =AddAssign= and =SubAssign= traits.  These allow us to efficiently mutate an =Account= by writing the expressions ~account += transfer;~ and ~account -= transfer;~ .
 
 #+NAME: rust:account-assets-add-assign
 #+BEGIN_SRC rust :include '("rust:account-struct") :exports code
@@ -1878,32 +2080,54 @@ impl SubAssign for AccountAssets {
 
 #+RESULTS: rust:account-assets-sub-assign
 
-#+BEGIN_SRC rust :include '("rust:exponentiation-by-squaring" "rust:interest-from-loan" "rust:loan-return-fractions" "rust:account-struct" "rust:total-interest" "rust:return-loan" "rust:strictly-solvent" "rust:bulk_update_account" "rust:account-assets-add-assign" "rust:account-assets-sub-assign") :exports code :crates '((fixed . 1.17) (fixed-macro . 1.1) (num-traits . 0.2)) :features '((fixed . ("num-traits"))) :exports code
-type Transfer = Account;
+Finally, we can express transferring assets from one account to another:
 
+#+BEGIN_SRC rust :include '("rust:exponentiation-by-squaring" "rust:interest-from-loan" "rust:loan-return-fractions" "rust:account-struct" "rust:return-loan" "rust:strictly-solvent" "rust:update-account" "rust:account-assets-add-assign" "rust:account-assets-sub-assign" "rust:transfer-type-alias" "rust:distribute-interest") :exports code :crates '((fixed . 1.17) (fixed-macro . 1.1) (num-traits . 0.2)) :features '((fixed . ("num-traits"))) :exports code
 fn transfer(
     source_account: &mut Account,
     target_account: &mut Account,
     transfer: &mut Transfer,
-    new_timestamp: u64,
+    time_when_transfer_executed: u64,
 ) {
+    // If the assets to be transfered are not strictly solvent, abort.
     if !strictly_solvent(&transfer.assets) {
         return;
     }
-    bulk_update_account(transfer, new_timestamp);
+
+    // Update the transfer's timestamp.
+    transfer.update(time_when_transfer_executed);
+
+    // Clone the source account and update its cash and loans.
     let mut new_source_account = source_account.clone();
-    bulk_update_account(&mut new_source_account, new_timestamp);
+    new_source_account.update(time_when_transfer_executed);
+
+    // If the updated account does not have sufficient cash reserves, abort.
     if new_source_account.assets.cash < transfer.assets.cash {
         return;
     }
+
     new_source_account.assets -= transfer.assets;
-    bulk_update_account(target_account, new_timestamp);
-    target_account.assets += transfer.assets;
+
+    // If the source account is not strictly solvent after transfer, abort.
+    if !strictly_solvent(&new_source_account.assets) {
+        return;
+    }
+
+    // Update the source account balance.
     *source_account = new_source_account;
+
+    // Update the target account and complete the transfer.
+    target_account.update(time_when_transfer_executed);
+    target_account.assets += transfer.assets;
 }
 #+END_SRC
 
 #+RESULTS:
+
+TODO: Unit test =update=
+
+#+BEGIN_SRC rust :include '("rust:exponentiation-by-squaring" "rust:loan-return-fractions") :crates '((fixed . 1.17) (fixed-macro . 1.1) (num-traits . 0.2)) :features '((fixed . ("num-traits"))) :exports none
+#+END_SRC
 
 
 # Local Variables:

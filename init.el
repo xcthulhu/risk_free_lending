@@ -1,16 +1,17 @@
-;;; .emacs -- Matthew Doty's emacs configuration -*- mode: emacs-lisp; lexical-binding: t; comment-fill-column: 128; -*-
+;;; init.el -- Initialization file for compiling LaTeX from org-mode files -*- mode: emacs-lisp; lexical-binding: t; comment-fill-column: 128; -*-
 
 ;;; Commentary:
-;;;   This .emacs is intended to download all dependencies if
-;;;   ~/.emacs.d is ever deleted.
 ;;;
-;;;   `use-package' is leveraged in order to break code into sections
+;;;  This init.el file is intended for batch compilation of org-mode
+;;;  files to LaTeX.
 
 ;;; Code:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Package Management ;;;;;;;;;;;;;;;;;;;;;;;;
 
 (eval-and-compile
+  (when (not (null (getenv "IN_NIX_SHELL")))
+    (setq user-emacs-directory (getenv "TMPDIR")))
   (require 'package)
   (setq package-archives
     '(
@@ -27,7 +28,7 @@
   (setf use-package-always-ensure t)
   )
 
-;; Python
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Python ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (use-package python
   :ensure nil
@@ -422,7 +423,7 @@ intended for `flyspell-incorrect-hook'."
   )
 
 (use-package ox-extra
-  :ensure org-plus-contrib
+  :ensure org
   :after org
   :demand
 

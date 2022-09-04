@@ -40,4 +40,4 @@ clean:
 .PHONY: full-clean
 full-clean:
 	make clean
-	rm -rf ltximg/ auto/
+	rm -rf ltximg/ auto/ .mypy_cache/
