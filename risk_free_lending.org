@@ -61,32 +61,40 @@ financing outside of the traditional banking system
 landlord invests the capital and collects dividends. When the tenant
 moves away they take their deposit back from the landlord.
 
-Because of counter-party risk, lending capital this way does not
-work for every day settlement. Imagine that Alice buys a burger from Bob
-and wants to settle by offering Bob a 15-year loan of $35. Bob might
-not return the money to Alice. Rather than trusting Bob, Alice will
-find it more attractive to settle as usual by paying Bob in cash.
+Because of counter-party risk, lending capital this way does not work
+for every day settlement. Imagine that Alice buys a burger from Bob
+and wants to settle by offering Bob a 15-year ``loan'' of $35. Under
+the terms of this loan Bob would collect dividends on that $35, but pay
+no interest to Alice. However, Bob might not return the money to Alice.
+Rather than trusting Bob, Alice will find it more attractive to settle
+as usual by paying Bob in cash.
 
 ** Our Contribution
 
 Blockchains enable /risk-free/ lending. In this paper we give a
 practical payment protocol which returns loans automatically. We
 provide an efficient prototype in ~200 lines of rust (see Appendix
-[[Prototype Implementation In Rust]]). We prove the protocol is /safe/. By
-safe, we mean the payment protocol makes insolvent accounts
-impossible. The protocol supports deterministic fixed interest
-payments, compounded potentially every millisecond. That way holders
-of capital can receive dividends on a continuous basis without
-reinvesting. All capital, both loans and cash, are /liquid/. By liquid
-we mean that anyone can transfer them at any time. Finally, we
-accomplish all of this without tracking counter-party obligations.
+[[Prototype Implementation In Rust]]).
+
+We prove the protocol is /safe/. By safe, we mean the payment protocol
+makes insolvent accounts impossible. The protocol supports
+deterministic fixed interest payments, compounded potentially every
+millisecond. That way holders of capital can receive dividends on a
+continuous basis without reinvesting. All capital, both loans and
+cash, are /liquid/. By liquid we mean that anyone can transfer them at
+any time. Finally, we accomplish all of this without tracking
+counter-party obligations.
 
 ** Prior Work
 
-Low-risk, interest bearing blockchain tokens are well known. /Proof of Stake/
-blockchains naturally pay out interest. Examples of proof of stake
-chains include Tendermint [[cite:&buchman_latest_2019]] and Solana
-[[cite:&yakovenko_solana_2018]]. Unlike the protocol presented here, tokens in this scheme do not have deterministic interest.  Interest is dependent on validator uptime.
+Our work extends the capabilities of interest-bearing tokens such as
+in /Proof of Stake/, while admittedly ignoring incentivizing
+consensus. /Proof of Stake/ blockchains naturally pay out interest to
+validators. Examples of proof of stake chains include Tendermint
+[[cite:&buchman_latest_2019]] and Solana [[cite:&yakovenko_solana_2018]].
+These chains do not have fixed interest, however. Interest depends on
+validator uptime. As a consequence it is not obvious how to adapt the
+financial products we describe to that setting.
 
 #+begin_src bibtex :exports none :tangle "./risk-free-lending-refs.bib"
 @techreport{buchman_latest_2019,
@@ -857,10 +865,11 @@ Every account balance shown in \S[[A Lending System]] will remain solvent
 indefinitely. The interest rate could even be zero. This is because they have a
 special property. We say they are ``strictly solvent.''
 
-An account is /strictly solvent/ when for all periods \(P\) the sum of the debit
-minus the credit is positive for periods equal to or longer than \(P\). We call
-such a sum a /partial NAV/. We write the partial NAV for periods 15 years or
-longer as ``15-Yr+ Nav'', periods 10 years or longer as ``10-Yr+ Nav'', etc.
+An account is /strictly solvent/ when for all periods \(P\) the sum of
+the debit loans and cash minus the credit loans is positive for
+periods equal to or longer than \(P\). We call such a sum a /partial
+NAV/. We write the partial NAV for periods 15 years or longer as
+``15-Yr+ NAV'', periods 10 years or longer as ``10-Yr+ NAV'', etc.
 
 For example, the following account is strictly solvent:
 
@@ -1547,7 +1556,8 @@ return json.dumps(account, indent=4)
 }
 #+end_src
 
-We represent a /ledger/ as a dictionary of dictionaries.  We gave an example in [[A Lending System]].  Here is that same example:
+We represent a /ledger/ as a dictionary of dictionaries. We gave an
+example in \S[[A Lending System]]. Here is that same example:
 
 #+begin_src python :exports results :results value code :noweb yes :var accounts=accounts-1 :eval never-export
 return accounts
@@ -1569,6 +1579,10 @@ return accounts
 
 ** Interest and Loan Return Fractions
 
+The following constants capture the different fractions \(\rho\)
+returned each quarter for each of the loan periods, as well as the
+quarterly compound interest rate.
+
 #+begin_src python :exports code :results none :noweb yes
 <<loans_returned_every_quarter>>
 #+end_src
@@ -1587,7 +1601,12 @@ of the risk-free lending protocol in the rust programming language.
 
 The system presented has a fixed interest rate of 10.8% APY.
 
-This prototype effectively updates accounts every millisecond. The system achieves this by /lazily/ distributing interest and returning loans. We show how to collapse millions of updates into a single calculation. We do this by using fixed interest and the closed form in equation \eqref{eqn:interest-closed-form} from \S[[Basic Long-Term Compound Interest Model]].
+This prototype effectively updates accounts every millisecond. The
+system achieves this by /lazily/ distributing interest and returning
+loans. We show how to collapse millions of updates into a single
+calculation. We do this by using fixed interest and the closed form in
+equation \eqref{eqn:interest-closed-form} from \S[[Basic Long-Term
+Compound Interest Model]].
 
 ** Data Representation
 The rust prototype represents accounts as a data structure. is similar to the data structure from Listing [[accounts-1-listing]].
@@ -1642,8 +1661,8 @@ prototype.
 ** Interest and Loan Return Fractions
 
 The following constants capture the different fractions \(\rho\)
-returned each millisecond for each of the loans and the compound
-interest distributed. We use the =fixed= crate[fn::
+returned each millisecond for each of the loan periods, along with the
+interest rate. We use the =fixed= crate[fn::
 https://docs.rs/fixed/latest/fixed/] for fixed-point arithmetic. We
 need to use fixed-point arithmetic to ensure calculations are
 deterministic (as we are assuming a blockchain setting). We use the
